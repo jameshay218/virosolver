@@ -13,7 +13,6 @@ viral_load_func <- function(pars, obs_t, convert_ct=TRUE, infection_time=0){
 
   wane_rate <- (height-level_switch)/t_switch
   wane_rate2 <- (level_switch - pars["LOD"])/pars["wane_rate2"]
-  print(pars["wane_rate2"])
   growth_rate <- (height-true_0)/desired_mode
 
   y <- numeric(length(obs_t))
@@ -26,4 +25,17 @@ viral_load_func <- function(pars, obs_t, convert_ct=TRUE, infection_time=0){
     ct <- yintercept - log2(10) * (ct-pars["LOD"])
   }
   ct
+}
+
+#' @export
+pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection){
+  comb_dat <- NULL
+  for(obs_time in obs_times){
+    ages1 <- ages[(obs_time - ages) > 0]
+    densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection)
+    comb_dat[[obs_time]] <- tibble(ct=test_cts,density=densities, t=obs_time)
+  }
+  comb_dat <- do.call("bind_rows",comb_dat)
+  comb_dat
+
 }

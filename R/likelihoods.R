@@ -1,6 +1,6 @@
 #' @export
-likelihood_cpp_wrapper <- function(obs, ages, pars, prob_infection){
-  times <- unique(obs$t)
+likelihood_cpp_wrapper <- function(obs_dat, ages, pars, prob_infection){
+  times <- unique(obs_dat$t)
   liks_tj <- 0
   for(obs_time in times){
     ages1 <- ages[(obs_time - ages) > 0]

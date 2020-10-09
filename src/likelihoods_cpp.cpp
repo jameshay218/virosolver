@@ -68,7 +68,6 @@ NumericVector likelihood_cpp(NumericVector obs,
   double prob_detect = pars["prob_detect"];
 
   double t_switch1 = t_switch + desired_mode + tshift;
-  //Rcpp::Rcout << wane_rate2 << std::endl;
   NumericVector vl_ages(ages.size());
   NumericVector renormalizes(ages.size());
   for(int i = 0; i < vl_ages.size(); ++i){
@@ -82,20 +81,14 @@ NumericVector likelihood_cpp(NumericVector obs,
   NumericVector prob_detectable_dat(ages.size());
   double prob_undetectable=0;
   for(int i = 0; i < prob_detectable_dat.size(); ++i){
-    //Rcpp::Rcout << "Age: " << ages[i] << std::endl;
-
     prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd, yintercept,
                                                  t_switch1, prob_detect);
-
-    //Rcpp::Rcout << "Prob detectable: " << prob_detectable_dat[i] << std::endl;
-    //Rcpp::Rcout << "Prob infection: " << prob_infection[obs_time-ages[i]-1] << std::endl;
-
     prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
   }
   prob_undetectable = 1 - prob_undetectable;
 
   NumericVector liks_tj(obs.size());
-  //Rcpp::Rcout << "Prob undetectable: " << prob_undetectable << std::endl;
+
   // For each observation
   for(int i = 0; i < obs.size(); ++i){
     if(obs[i] >= yintercept){
@@ -112,3 +105,65 @@ NumericVector likelihood_cpp(NumericVector obs,
   }
   return liks_tj;
 }
+
+
+// [[Rcpp::export]]
+NumericVector pred_dist_cpp(NumericVector test_cts,
+                            NumericVector ages,
+                            double obs_time,
+                            NumericVector pars,
+                            NumericVector prob_infection){
+
+  double lod = pars["LOD"];
+  double tshift = pars["tshift"];
+  double desired_mode = pars["desired_mode"];
+  double t_switch = pars["t_switch"];
+  double viral_peak = pars["viral_peak"];
+  double obs_sd = pars["obs_sd"];
+  double level_switch = pars["level_switch"];
+  double true_0 = pars["true_0"];
+  double yintercept = pars["intercept"];
+  double wane_rate = (viral_peak - level_switch)/t_switch;
+  double wane_rate2 = (level_switch - lod)/pars["wane_rate2"];
+  double growth_rate = (viral_peak - true_0)/desired_mode;
+  double prob_detect = pars["prob_detect"];
+
+  double t_switch1 = t_switch + desired_mode + tshift;
+  NumericVector vl_ages(ages.size());
+  NumericVector renormalizes(ages.size());
+  double prob_undetectable=0;
+  for(int i = 0; i < vl_ages.size(); ++i){
+    vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
+                                            obs_sd, level_switch,true_0, yintercept,
+                                            lod,wane_rate, wane_rate2,growth_rate,
+                                            ages[i],true);
+    renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+  }
+  NumericVector prob_detectable_dat(ages.size());
+  for(int i = 0; i < prob_detectable_dat.size(); ++i){
+    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd, yintercept,
+                                                 t_switch1, prob_detect);
+    prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
+  }
+  prob_undetectable = 1 - prob_undetectable;
+
+  NumericVector density(test_cts.size());
+  // For each observation
+  for(int i = 0; i < test_cts.size(); ++i){
+    for(int j = 0; j < vl_ages.size(); ++j){
+      if(test_cts[i] >= yintercept){
+        density[i] = prob_undetectable;
+      } else {
+        density[i] += ((
+          pgumbel_jh(test_cts[i]+1, vl_ages[ages[j]-1], obs_sd)-
+          pgumbel_jh(test_cts[i], vl_ages[ages[j]-1], obs_sd)
+                         )*
+          prob_infection[obs_time-ages[j]-1]*
+          prob_detectable_dat[ages[j]-1])/
+            renormalizes[ages[j]-1]  ;
+      }
+    }
+  }
+  return density;
+}
+

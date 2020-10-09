@@ -62,6 +62,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pred_dist_cpp
+NumericVector pred_dist_cpp(NumericVector test_cts, NumericVector ages, double obs_time, NumericVector pars, NumericVector prob_infection);
+RcppExport SEXP _virosolver_pred_dist_cpp(SEXP test_ctsSEXP, SEXP agesSEXP, SEXP obs_timeSEXP, SEXP parsSEXP, SEXP prob_infectionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type test_cts(test_ctsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type ages(agesSEXP);
+    Rcpp::traits::input_parameter< double >::type obs_time(obs_timeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type prob_infection(prob_infectionSEXP);
+    rcpp_result_gen = Rcpp::wrap(pred_dist_cpp(test_cts, ages, obs_time, pars, prob_infection));
+    return rcpp_result_gen;
+END_RCPP
+}
 // viral_load_func_single_cpp
 double viral_load_func_single_cpp(double tshift, double desired_mode, double t_switch, double viral_peak, double obs_sd, double level_switch, double true_0, double yintercept, double lod, double wane_rate, double wane_rate2, double growth_rate, double obs_t, bool convert_ct);
 RcppExport SEXP _virosolver_viral_load_func_single_cpp(SEXP tshiftSEXP, SEXP desired_modeSEXP, SEXP t_switchSEXP, SEXP viral_peakSEXP, SEXP obs_sdSEXP, SEXP level_switchSEXP, SEXP true_0SEXP, SEXP yinterceptSEXP, SEXP lodSEXP, SEXP wane_rateSEXP, SEXP wane_rate2SEXP, SEXP growth_rateSEXP, SEXP obs_tSEXP, SEXP convert_ctSEXP) {
@@ -85,18 +100,4 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(viral_load_func_single_cpp(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct));
     return rcpp_result_gen;
 END_RCPP
-}
-
-static const R_CallMethodDef CallEntries[] = {
-    {"_virosolver_dgumbel_jh", (DL_FUNC) &_virosolver_dgumbel_jh, 3},
-    {"_virosolver_pgumbel_jh", (DL_FUNC) &_virosolver_pgumbel_jh, 3},
-    {"_virosolver_prop_detectable_cpp", (DL_FUNC) &_virosolver_prop_detectable_cpp, 6},
-    {"_virosolver_likelihood_cpp", (DL_FUNC) &_virosolver_likelihood_cpp, 5},
-    {"_virosolver_viral_load_func_single_cpp", (DL_FUNC) &_virosolver_viral_load_func_single_cpp, 14},
-    {NULL, NULL, 0}
-};
-
-RcppExport void R_init_virosolver(DllInfo *dll) {
-    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-    R_useDynamicSymbols(dll, FALSE);
 }
