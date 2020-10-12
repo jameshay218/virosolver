@@ -2,8 +2,21 @@
 solveSEIRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
   init <- c(1-pars["I0"],0,pars["I0"],0,0)
-  c(rep(0, pars["t0"]),0,diff(rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
-                 deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-5,rtol=1e-5)[6,]))[1:length(times)]
+  inc <- c(rep(0, pars["t0"]),0,diff(rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
+                 deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)[6,]))[1:length(times)]
+  inc <- pmax(0, inc)
+  inc
+}
+
+#' @export
+exponential_growth_model <- function(pars, times){
+  overall_prob <- pars["overall_prob"]
+  beta <- pars["beta"]
+
+  y <- exp(beta*times)
+  scale <- sum(y)/overall_prob
+  prob_infection_tmp <- y/scale
+  prob_infection_tmp
 }
 
 

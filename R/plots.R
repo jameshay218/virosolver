@@ -64,7 +64,9 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
   summary_posterior_dat <- posterior_dat %>%
     filter(ct < best_pars["intercept"]) %>%
     group_by(t, sampno) %>%
-    mutate(density=density/max(density)) %>%
+    mutate(max_density = max(density),
+              max_density = max(1e-10, max_density)) %>%
+    mutate(density=density/max_density) %>%
     group_by(ct, t) %>%
     summarize(lower=quantile(density,0.025),
               median=quantile(density,0.5),

@@ -144,6 +144,12 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
     prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd, yintercept,
                                                  t_switch1, prob_detect);
     prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
+
+    // If no one is detectable of a certain age since infection, then we will be dividing
+    // 0 by renormalizes[i], so set to 1 to prevent error
+    if(prob_detectable_dat[i] == 0) {
+      renormalizes[i] = 1;
+    }
   }
   prob_undetectable = 1 - prob_undetectable;
 

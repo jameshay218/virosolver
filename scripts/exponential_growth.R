@@ -18,14 +18,14 @@ registerDoParallel(cl)
 
 
 rerun <- TRUE
-run_cumulative <- TRUE
-save_wd <- "chains/two_samples/"
-run_name <- "two_samples"
-plot_wd <- "plots/two_samples/"
+run_cumulative <- FALSE
+save_wd <- "chains/mispecified/"
+run_name <- "mispecified"
+plot_wd <- "plots/mispecified/"
 
 ## MCMC
-mcmcPars <- c("iterations"=50000,"popt"=0.234,"opt_freq"=1000,
-              "thin"=10,"adaptive_period"=20000,"save_block"=1000)
+mcmcPars <- c("iterations"=100000,"popt"=0.234,"opt_freq"=1000,
+              "thin"=10,"adaptive_period"=50000,"save_block"=1000)
 
 ## Parameters
 parTab <- read.csv("~/Documents/GitHub/ct_inference/pars/parTab_test_seir.csv")
@@ -33,27 +33,25 @@ pars <- parTab$values
 names(pars) <- parTab$names
 
 ## Observation times
-#obs_times <- seq(50,250,by=50)
-obs_times <- c(50,150)
+obs_times <- seq(50,170,by=10)
 ages <- 1:max(obs_times)
+ages <- 1:35
 times <- seq(0,max(obs_times),by=1)
 
 
 ## Specify process models
-prior_func_use <- prior_func_hinge2
-incidence_func <- solveSEIRModel_rlsoda_wrapper
+prior_func_use <- prior_func_hinge_exp
+incidence_func_sim <- solveSEIRModel_rlsoda_wrapper
+incidence_func <- exponential_growth_model
 
 ## Number sampled per time
-n_per_samp <- 1000
+n_per_samp <- 2000
 n_overall <- length(obs_times)*n_per_samp
 
 ## Probability of infection
-pars["sigma"] <- 1/pars["incubation"]
-pars["gamma"] <- 1/pars["infectious"]
-pars["beta"] <- pars["R0"]*pars["gamma"]
 
 ## Simulate probability of infection
-prob_infection <- incidence_func(pars, times)
+prob_infection <- incidence_func_sim(pars, times)
 ## Simulate infection times
 inf_times <- simulate_infection_times(n_per_samp,prob_infection)
 
@@ -83,8 +81,9 @@ res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tid
     obs_dat_tmp <- obs_dat %>% filter(t == obs_time)
   }
 
-  ## Epidemic cannot start after first observation time
-  parTab[parTab$names == "t0",c("upper_bound","upper_start")] <- min(obs_dat_tmp$t)
+  obs_dat_tmp1 <- obs_dat_tmp
+  obs_dat_tmp$t <- max(ages)
+
   ## Get random starting values
   startTab <- generate_viable_start_pars(parTab,obs_dat,
                                          create_posterior_func,
@@ -115,26 +114,26 @@ res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tid
     scale_x_continuous(breaks=seq(min(chain$sampno),max(chain$sampno),by=20000)) +
     theme_classic()
 
-  predictions <- plot_prob_infection(chain, 100, incidence_func, 0:365,
-                                     obs_dat=obs_dat_tmp,
+  predictions <- plot_prob_infection(chain, 100, incidence_func, seq(max(obs_dat_tmp1)-max(ages),max(obs_dat_tmp1$t)),
+                                     obs_dat=obs_dat_tmp1,
                                      true_prob_infection = tibble(t=times,prob_infection=prob_infection))
 
   p1 <- predictions$plot
   model_func <- create_posterior_func(parTab,obs_dat_tmp,NULL,incidence_func,"model")
   p2 <- plot_distribution_fits(chain, obs_dat_tmp, model_func,100)
-  p3 <- plot_posterior_density(chain, "R0",parTab, 0, 1000)
-  p4 <- plot_posterior_density(chain, "t0",parTab, 0, 1000)
+  p3 <- plot_posterior_density(chain, "beta",parTab, 0, 1000)
+  p4 <- plot_posterior_density(chain, "overall_prob",parTab, 0, 1000)
 
   dir.create(paste0(plot_wd,"/traces/"),recursive = TRUE)
   dir.create(paste0(plot_wd,"/predictions/"),recursive = TRUE)
   dir.create(paste0(plot_wd,"/distributions/"),recursive = TRUE)
-  dir.create(paste0(plot_wd,"/R0_density/"),recursive = TRUE)
-  dir.create(paste0(plot_wd,"/t0_density/"),recursive = TRUE)
+  dir.create(paste0(plot_wd,"/exp/"),recursive = TRUE)
+  dir.create(paste0(plot_wd,"/overall_prob/"),recursive = TRUE)
 
   ggsave(paste0(plot_wd,"/traces/",run_name,"_",obs_time,"_trace.png"),p_trace,width=7,height=4)
   ggsave(paste0(plot_wd,"/predictions/",run_name,"_",obs_time,"_predictions.png"),p1,width=7,height=4)
   ggsave(paste0(plot_wd,"distributions/",run_name,"_",obs_time,"_distributions.png"),p2,
          width=(7/5) * length(unique(obs_dat_tmp$t)),height=6)
-  ggsave(paste0(plot_wd,"R0_density/",run_name,"_",obs_time,"_R0_density.png"),p3,width=5,height=3)
-  ggsave(paste0(plot_wd,"t0_density/",run_name,"_",obs_time,"_t0_density.png"),p4,width=5,height=3)
+  ggsave(paste0(plot_wd,"exp/",run_name,"_",obs_time,"_exp.png"),p3,width=5,height=3)
+  ggsave(paste0(plot_wd,"overall_prob/",run_name,"_",obs_time,"_overall_prob.png"),p4,width=5,height=3)
 }
