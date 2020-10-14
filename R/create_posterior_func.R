@@ -10,6 +10,9 @@ create_posterior_func <- function(parTab,
   ages <- 1:max(data$t)
   obs_times <- unique(data$t)
 
+  mat <- matrix(rep(times, each=length(times)),ncol=length(times))
+  t_dist <- abs(apply(mat, 2, function(x) x-times))
+
   f <- function(pars){
     names(pars) <- par_names
     prob_infection_tmp <- INCIDENCE_FUNC(pars, times)
@@ -21,7 +24,7 @@ create_posterior_func <- function(parTab,
       }
 
       if(!is.null(PRIOR_FUNC)){
-        prior <- PRIOR_FUNC(pars)
+        prior <- PRIOR_FUNC(pars, t_dist)
         lik <- lik+prior
       }
       return(lik)
