@@ -1,4 +1,4 @@
-chain <- read.csv("test_univariate_chain.csv")
+chain <- read.csv("test1_univariate_chain.csv")
 chain <- chain[chain$sampno > 10000,]
 samps <- sample(unique(chain$sampno),1000)
 i <- 10
@@ -23,7 +23,7 @@ for(i in seq_along(samps)){
 lines(prob_infection,col="red",lwd=2)
 
 quants <- apply(preds, 2, function(x) quantile(x, c(0.025,0.5,0.975)))
-plot(quants[3,],type='l',ylim=c(0,0.03))
+plot(quants[3,],type='l',ylim=c(0,0.01))
 lines(quants[2,])
 lines(quants[1,])
 lines(prob_infection,col="red",lwd=2)

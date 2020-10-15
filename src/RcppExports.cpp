@@ -62,6 +62,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// likelihood_pos_only_cpp
+NumericVector likelihood_pos_only_cpp(NumericVector obs, double obs_time, NumericVector ages, NumericVector pars, NumericVector prob_infection);
+RcppExport SEXP _virosolver_likelihood_pos_only_cpp(SEXP obsSEXP, SEXP obs_timeSEXP, SEXP agesSEXP, SEXP parsSEXP, SEXP prob_infectionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type obs(obsSEXP);
+    Rcpp::traits::input_parameter< double >::type obs_time(obs_timeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type ages(agesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type prob_infection(prob_infectionSEXP);
+    rcpp_result_gen = Rcpp::wrap(likelihood_pos_only_cpp(obs, obs_time, ages, pars, prob_infection));
+    return rcpp_result_gen;
+END_RCPP
+}
 // pred_dist_cpp
 NumericVector pred_dist_cpp(NumericVector test_cts, NumericVector ages, double obs_time, NumericVector pars, NumericVector prob_infection);
 RcppExport SEXP _virosolver_pred_dist_cpp(SEXP test_ctsSEXP, SEXP agesSEXP, SEXP obs_timeSEXP, SEXP parsSEXP, SEXP prob_infectionSEXP) {

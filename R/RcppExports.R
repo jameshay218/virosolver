@@ -17,6 +17,10 @@ likelihood_cpp <- function(obs, obs_time, ages, pars, prob_infection) {
     .Call('_virosolver_likelihood_cpp', PACKAGE = 'virosolver', obs, obs_time, ages, pars, prob_infection)
 }
 
+likelihood_pos_only_cpp <- function(obs, obs_time, ages, pars, prob_infection) {
+    .Call('_virosolver_likelihood_pos_only_cpp', PACKAGE = 'virosolver', obs, obs_time, ages, pars, prob_infection)
+}
+
 pred_dist_cpp <- function(test_cts, ages, obs_time, pars, prob_infection) {
     .Call('_virosolver_pred_dist_cpp', PACKAGE = 'virosolver', test_cts, ages, obs_time, pars, prob_infection)
 }

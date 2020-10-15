@@ -52,24 +52,39 @@ NumericVector likelihood_cpp(NumericVector obs,
                              NumericVector ages,
                              NumericVector pars,
                              NumericVector prob_infection){
-
-  double lod = pars["LOD"];
+  // Parameters for viral kinetics model
   double tshift = pars["tshift"];
   double desired_mode = pars["desired_mode"];
   double t_switch = pars["t_switch"];
   double viral_peak = pars["viral_peak"];
-  double obs_sd = pars["obs_sd"];
   double level_switch = pars["level_switch"];
   double true_0 = pars["true_0"];
+  double prob_detect = pars["prob_detect"];
+
+  // Parameters for observation process
+  double obs_sd = pars["obs_sd"]; // Gumbel distributed observation variation
   double yintercept = pars["intercept"];
+  double lod = pars["LOD"];
+
+  // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
   double wane_rate2 = (level_switch - lod)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
-  double prob_detect = pars["prob_detect"];
-
   double t_switch1 = t_switch + desired_mode + tshift;
+
+  // Store viral loads over time since infection
   NumericVector vl_ages(ages.size());
+  // Re-normalize probabilities as given detectable, must sum to 1
   NumericVector renormalizes(ages.size());
+
+  // Probability detectable over time
+  NumericVector prob_detectable_dat(ages.size());
+  double prob_undetectable=0;
+
+  // Likelihoods for data points
+  NumericVector liks_tj(obs.size());
+
+  // For each age since infection, calculated the expected viral load and normalization factor
   for(int i = 0; i < vl_ages.size(); ++i){
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
                                             obs_sd, level_switch,true_0, yintercept,
@@ -77,9 +92,10 @@ NumericVector likelihood_cpp(NumericVector obs,
                                             ages[i],true);
     renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
   }
-  //return vl_ages;
-  NumericVector prob_detectable_dat(ages.size());
-  double prob_undetectable=0;
+
+  // For each day since infection, calculate the probability that you are still detectable
+  // Conditional on the probability of infection and viral kinetics model
+  // Also calculate the overall probability of remaining undetectable the whole time
   for(int i = 0; i < prob_detectable_dat.size(); ++i){
     prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd, yintercept,
                                                  t_switch1, prob_detect);
@@ -87,13 +103,18 @@ NumericVector likelihood_cpp(NumericVector obs,
   }
   prob_undetectable = 1 - prob_undetectable;
 
-  NumericVector liks_tj(obs.size());
 
-  // For each observation
+  // For each observation, find log likelihood
   for(int i = 0; i < obs.size(); ++i){
+
+    // If undetectable, has the same probability
     if(obs[i] >= yintercept){
       liks_tj[i] = prob_undetectable;
     } else {
+      // If detectable, across all past days:
+      // i) Probability of infection that day
+      // ii) Probability still detectable today
+      // iii) Probability of observing Ct value, given time since infection and being detectable+infected
       for(int j = 0; j < vl_ages.size(); ++j){
         liks_tj[i] += (dgumbel_jh(obs[i], vl_ages[ages[j]-1], obs_sd)*
           prob_infection[obs_time-ages[j]-1]*
@@ -105,6 +126,85 @@ NumericVector likelihood_cpp(NumericVector obs,
   }
   return liks_tj;
 }
+
+
+// [[Rcpp::export]]
+NumericVector likelihood_pos_only_cpp(NumericVector obs,
+                             double obs_time,
+                             NumericVector ages,
+                             NumericVector pars,
+                             NumericVector prob_infection){
+  // Parameters for viral kinetics model
+  double tshift = pars["tshift"];
+  double desired_mode = pars["desired_mode"];
+  double t_switch = pars["t_switch"];
+  double viral_peak = pars["viral_peak"];
+  double level_switch = pars["level_switch"];
+  double true_0 = pars["true_0"];
+  double prob_detect = pars["prob_detect"];
+
+  // Parameters for observation process
+  double obs_sd = pars["obs_sd"]; // Gumbel distributed observation variation
+  double yintercept = pars["intercept"];
+  double lod = pars["LOD"];
+
+  // Transformed parameters
+  double wane_rate = (viral_peak - level_switch)/t_switch;
+  double wane_rate2 = (level_switch - lod)/pars["wane_rate2"];
+  double growth_rate = (viral_peak - true_0)/desired_mode;
+  double t_switch1 = t_switch + desired_mode + tshift;
+
+  // Store viral loads over time since infection
+  NumericVector vl_ages(ages.size());
+  // Re-normalize probabilities as given detectable, must sum to 1
+  NumericVector renormalizes(ages.size());
+
+    // Probability detectable over time
+  NumericVector prob_detectable_dat(ages.size());
+  double prob_detectable_and_infected=0;
+
+  // Likelihoods for data points
+  NumericVector liks_tj(obs.size());
+
+  // For each age since infection, calculated the expected viral load and normalization factor
+  for(int i = 0; i < vl_ages.size(); ++i){
+    vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
+                                            obs_sd, level_switch,true_0, yintercept,
+                                            lod,wane_rate, wane_rate2,growth_rate,
+                                            ages[i],true);
+    renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+  }
+
+  // For each day since infection, calculate the probability that you are still detectable
+  // Conditional on the probability of infection and viral kinetics model
+  // Also calculate the overall probability of being infected on each day in the past and
+  //   still being detectable today
+  for(int i = 0; i < prob_detectable_dat.size(); ++i){
+    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd, yintercept,
+                                                 t_switch1, prob_detect);
+    prob_detectable_and_infected += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
+  }
+
+
+  // For each observation, find log likelihood
+  // Note, all Cts are detectable here
+  for(int i = 0; i < obs.size(); ++i){
+      // Across all past days:
+      // i) Probability of infection that day
+      // ii) Probability still detectable today
+      // iii) Probability of observing Ct value, given time since infection and being detectable+infected
+      for(int j = 0; j < vl_ages.size(); ++j){
+        liks_tj[i] += (dgumbel_jh(obs[i], vl_ages[ages[j]-1], obs_sd)*
+          prob_infection[obs_time-ages[j]-1]*
+          prob_detectable_dat[ages[j]-1])/
+            renormalizes[ages[j]-1]  ;
+      }
+
+    liks_tj[i] = log(liks_tj[i]/prob_detectable_and_infected);
+  }
+  return liks_tj;
+}
+
 
 
 // [[Rcpp::export]]

@@ -14,8 +14,8 @@ rerun <- TRUE
 ## Parameters
 parTab <- read.csv("~/Documents/GitHub/ct_inference/pars/parTab_test_seir.csv")
 parTab[parTab$names == "beta","fixed"] <- 1
-parTab[parTab$names == "rho","fixed"] <- 0
-parTab[parTab$names == "rho","values"] <- 0.03
+parTab[parTab$names == "rho","fixed"] <- 1
+parTab[parTab$names == "rho","values"] <- 0.05
 parTab[parTab$names == "nu","fixed"] <- 0
 parTab[parTab$names == "nu","values"] <- 3
 parTab[parTab$names == "t0","values"] <- 0
@@ -25,10 +25,17 @@ names(pars) <- parTab$names
 
 ## Observation times
 obs_times <- seq(25,100,by=25)
+obs_times <- 75
 #obs_times <- c(35, 70,105)
+
+
 
 ages <- 1:max(obs_times)
 times <- seq(0,max(obs_times),by=1)
+
+
+mat <- matrix(rep(times, each=length(times)),ncol=length(times))
+t_dist <- abs(apply(mat, 2, function(x) x-times))
 
 ## Epidemic cannot start after first observation time
 parTab[parTab$names == "t0",c("upper_bound","upper_start")] <- min(obs_times)
@@ -38,7 +45,7 @@ prior_func_use <- prior_func_hinge_gp
 incidence_func <- solveSEIRModel_rlsoda_wrapper
 
 ## Number sampled per time
-n_per_samp <- 1000
+n_per_samp <- 5000
 n_overall <- length(obs_times)*n_per_samp
 
 ## Probability of infection
@@ -99,10 +106,10 @@ names(pars) <- parTab$names
 
 
 ## MCMC
-mcmcPars1 <- c("iterations"=100000,"popt"=0.44,"opt_freq"=5000,
-               "thin"=10,"adaptive_period"=50000,"save_block"=1000)
+mcmcPars1 <- c("iterations"=50000,"popt"=0.44,"opt_freq"=5000,
+               "thin"=10,"adaptive_period"=20000,"save_block"=1000)
 mcmcPars2 <- c("iterations"=100000,"popt"=0.234,"opt_freq"=5000,
-              "thin"=10,"adaptive_period"=50000,"save_block"=1000)
+              "thin"=10,"adaptive_period"=20000,"save_block"=1000)
 
 ## Get random starting values
 startTab <- generate_viable_start_pars(parTab,obs_dat,
@@ -113,7 +120,7 @@ covMat <- diag(nrow(startTab))
 mvrPars <- list(covMat,2.38/sqrt(nrow(startTab[startTab$fixed==0,])),w=0.8)
 
 f <- create_posterior_func(startTab, data=obs_dat, PRIOR_FUNC=prior_func_hinge_gp,
-                           INCIDENCE_FUNC=gaussian_process_model)
+                           INCIDENCE_FUNC=gaussian_process_model,t_dist=t_dist)
 f(pars)
 ## Run multivariate proposal MCMC
 if(rerun){
@@ -123,18 +130,20 @@ if(rerun){
                       PRIOR_FUNC = prior_func_hinge_gp,
                       solve_likelihood=TRUE,
                       mcmcPars=mcmcPars1,
-                      filename="test",
+                      filename="test1",
                       CREATE_POSTERIOR_FUNC=create_posterior_func,
                       mvrPars=NULL,
-                      OPT_TUNING=0.2)
+                      OPT_TUNING=0.2,
+                     t_dist=t_dist)
   chain <- read.csv(output$file)
+
+  bestPars <- get_best_pars(chain)
   chain <- chain[chain$sampno >= mcmcPars1["adaptive_period"],2:(ncol(chain)-1)]
   covMat <- cov(chain)
 
   covMat <- diag(nrow(startTab))
   mvrPars <- list(covMat,2.38/sqrt(nrow(startTab[startTab$fixed==0,])),w=0.8)
 
-  bestPars <- get_best_pars(chain)
   startTab$values <- bestPars
 
   output1 <- run_MCMC(parTab=startTab,
@@ -143,10 +152,11 @@ if(rerun){
                      PRIOR_FUNC = prior_func_hinge_gp,
                      solve_likelihood=TRUE,
                      mcmcPars=mcmcPars2,
-                     filename="test",
+                     filename="test1",
                      CREATE_POSTERIOR_FUNC=create_posterior_func,
                      mvrPars=mvrPars,
-                     OPT_TUNING=0.2)
+                     OPT_TUNING=0.2,
+                     t_dist=t_dist)
   chain <- read.csv(output1$file)
 } else {
   chain <- read.csv("test_multivariate_chain.csv")

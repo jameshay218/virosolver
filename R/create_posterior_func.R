@@ -4,14 +4,13 @@ create_posterior_func <- function(parTab,
                                   PRIOR_FUNC=NULL,
                                   INCIDENCE_FUNC=NULL,
                                   solve_ver="likelihood",
-                                  solve_likelihood=TRUE) {
+                                  solve_likelihood=TRUE,
+                                  use_pos=FALSE,
+                                  ...) {
   par_names <- parTab$names
   times <- 0:max(data$t)
   ages <- 1:max(data$t)
   obs_times <- unique(data$t)
-
-  mat <- matrix(rep(times, each=length(times)),ncol=length(times))
-  t_dist <- abs(apply(mat, 2, function(x) x-times))
 
   f <- function(pars){
     names(pars) <- par_names
@@ -20,11 +19,11 @@ create_posterior_func <- function(parTab,
     if(solve_ver == "likelihood"){
       lik <- 0
       if(solve_likelihood){
-        lik <- sum(likelihood_cpp_wrapper(data, ages, pars, prob_infection_tmp))
+        lik <- sum(likelihood_cpp_wrapper(data, ages, pars, prob_infection_tmp,use_pos))
       }
 
       if(!is.null(PRIOR_FUNC)){
-        prior <- PRIOR_FUNC(pars, t_dist)
+        prior <- PRIOR_FUNC(pars, ...)
         lik <- lik+prior
       }
       return(lik)
