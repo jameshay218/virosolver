@@ -16,16 +16,15 @@ n_clusters <- 10
 cl <- makeCluster(n_clusters)
 registerDoParallel(cl)
 
-
 rerun <- TRUE
 run_cumulative <- TRUE
-save_wd <- "chains/two_samples/"
-run_name <- "two_samples"
-plot_wd <- "plots/two_samples/"
+save_wd <- "chains/two_samples_pos/"
+run_name <- "two_samples_pos"
+plot_wd <- "plots/two_samples_pos/"
 
 ## MCMC
-mcmcPars <- c("iterations"=50000,"popt"=0.234,"opt_freq"=1000,
-              "thin"=10,"adaptive_period"=20000,"save_block"=1000)
+mcmcPars <- c("iterations"=100000,"popt"=0.234,"opt_freq"=1000,
+              "thin"=10,"adaptive_period"=50000,"save_block"=1000)
 
 ## Parameters
 parTab <- read.csv("~/Documents/GitHub/ct_inference/pars/parTab_test_seir.csv")
@@ -33,8 +32,8 @@ pars <- parTab$values
 names(pars) <- parTab$names
 
 ## Observation times
-#obs_times <- seq(50,250,by=50)
-obs_times <- c(50,150)
+#obs_times <- seq(50,250,by=10)
+obs_times <- c(75,125,150)
 ages <- 1:max(obs_times)
 times <- seq(0,max(obs_times),by=1)
 
@@ -44,7 +43,7 @@ prior_func_use <- prior_func_hinge2
 incidence_func <- solveSEIRModel_rlsoda_wrapper
 
 ## Number sampled per time
-n_per_samp <- 1000
+n_per_samp <- 2000
 n_overall <- length(obs_times)*n_per_samp
 
 ## Probability of infection
@@ -70,6 +69,8 @@ obs_dat <- viral_loads %>%
   sample_n(n_per_samp) %>%
   select(t, obs) %>%
   rename(ct=obs)
+obs_dat <- obs_dat %>% filter(ct < 40)
+
 
 res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tidyverse","patchwork")) %dopar% {
   dir.create(save_wd)
@@ -102,7 +103,8 @@ res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tid
                       filename=paste0(save_wd, run_name,"_",obs_time),
                       CREATE_POSTERIOR_FUNC=create_posterior_func,
                       mvrPars=mvrPars,
-                      OPT_TUNING=0.2)
+                      OPT_TUNING=0.2,
+                     use_pos=TRUE)
 
   chain <- read.csv(output$file)
   chain <- chain[chain$sampno > mcmcPars["adaptive_period"],]

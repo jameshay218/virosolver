@@ -31,6 +31,22 @@ detectable_SEEIRRModel <- function(pars, times){
 
 
 #' @export
+SEEIRRModel <- function(pars, times){
+  seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
+  init <- c(1-pars["I0"],0,0,pars["I0"],0,0,0)
+  y <- rlsoda::rlsoda(init, times, C_SEEIRR_model_rlsoda, parms=seir_pars, dllname="virosolver",
+                      deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
+  y <- as.data.frame(y)
+  y$time <- y$time + floor(pars["t0"])
+  addition <- as.data.frame(matrix(0, ncol=ncol(y),nrow=floor(pars["t0"])))
+  colnames(addition) <- colnames(y)
+  addition$time <- 0:(floor(pars["t0"])-1)
+  y_end <- rbind(addition,y)
+  colnames(y_end) <- colnames(y)
+  y_end
+}
+
+#' @export
 exponential_growth_model <- function(pars, times){
   overall_prob <- pars["overall_prob"]
   beta <- pars["beta"]
@@ -43,7 +59,6 @@ exponential_growth_model <- function(pars, times){
 
 #' @export
 gaussian_process_model <- function(pars, times){
-  #browser()
   par_names <- names(pars)
   use_names <- c("prob",paste0("prob.",1:length(times)))
   overall_prob <- pars["overall_prob"]

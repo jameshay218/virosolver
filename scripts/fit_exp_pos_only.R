@@ -18,13 +18,13 @@ registerDoParallel(cl)
 
 rerun <- TRUE
 run_cumulative <- FALSE
-save_wd <- "chains/mispecified/"
-run_name <- "mispecified"
-plot_wd <- "plots/mispecified/"
+save_wd <- "chains/pos_exp/"
+run_name <- "pos_exp"
+plot_wd <- "plots/pos_exp/"
 
 ## MCMC
-mcmcPars <- c("iterations"=50000,"popt"=0.234,"opt_freq"=1000,
-              "thin"=10,"adaptive_period"=20000,"save_block"=1000)
+mcmcPars <- c("iterations"=20000,"popt"=0.234,"opt_freq"=1000,
+              "thin"=10,"adaptive_period"=10000,"save_block"=1000)
 
 ## Parameters
 parTab <- read.csv("~/Documents/GitHub/ct_inference/pars/parTab_test_seir.csv")
@@ -34,7 +34,7 @@ pars <- parTab$values
 names(pars) <- parTab$names
 
 ## Observation times
-obs_times <- 175
+obs_times <- seq(50,250,by=25)
 ages <- 1:max(obs_times)
 ages <- 1:35
 times <- seq(0,max(obs_times),by=1)
@@ -46,7 +46,7 @@ incidence_func_sim <- solveSEIRModel_rlsoda_wrapper
 incidence_func <- exponential_growth_model
 
 ## Number sampled per time
-n_per_samp <- 1000
+n_per_samp <- 5000
 n_overall <- length(obs_times)*n_per_samp
 
 ## Probability of infection
@@ -88,10 +88,12 @@ res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tid
   obs_dat_tmp$t <- max(ages)
 
   ## Get random starting values
-  startTab <- generate_viable_start_pars(parTab,obs_dat,
-                                         create_posterior_func,
-                                         incidence_func,
-                                         prior_func_use)
+  startTab <- parTab
+  #startTab <- generate_viable_start_pars(parTab,obs_dat,
+  #                                       create_posterior_func,
+  #                                       incidence_func,
+  #                                       prior_func_use)
+
   covMat <- diag(nrow(startTab))
   mvrPars <- list(covMat,2.38/sqrt(nrow(startTab[startTab$fixed==0,])),w=0.8)
 
@@ -106,7 +108,6 @@ res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tid
                       mvrPars=mvrPars,
                       OPT_TUNING=0.2,
                      use_pos=TRUE)
-
   chain <- read.csv(output$file)
   chain <- chain[chain$sampno > mcmcPars["adaptive_period"],]
 
@@ -118,11 +119,16 @@ res <- foreach(i=seq_along(obs_times),.packages = c("lazymcmc","extraDistr","tid
     scale_x_continuous(breaks=seq(min(chain$sampno),max(chain$sampno),by=20000)) +
     theme_classic()
 
-  prob1 <- prob_infection[(length(prob_infection)-35):length(prob_infection)]
-  prob1 <- prob1/sum(prob1)
+  max_obs_t <- max(obs_dat_tmp1$t)
+  tmp_times <- (max_obs_t - length(ages)):max_obs_t
+
+
+  prob1 <- prob_infection[which(times %in% tmp_times)]
+  prob2 <- prob_infection/sum(prob1)
   predictions <- plot_prob_infection(chain, 100, incidence_func, seq(max(obs_dat_tmp1)-max(ages),max(obs_dat_tmp1$t)),
                                      obs_dat=obs_dat_tmp1,
-                                     true_prob_infection = tibble(t=(max(times)-length(ages)):max(times),prob_infection=prob1))
+                                     true_prob_infection = tibble(t=times,prob_infection=prob2),
+                                     tshift=0)
 
   p1 <- predictions$plot
   model_func <- create_posterior_func(parTab,obs_dat_tmp,NULL,incidence_func,"model")

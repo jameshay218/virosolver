@@ -28,12 +28,8 @@ obs_times <- seq(25,100,by=25)
 obs_times <- 75
 #obs_times <- c(35, 70,105)
 
-
-
 ages <- 1:max(obs_times)
 times <- seq(0,max(obs_times),by=1)
-
-
 mat <- matrix(rep(times, each=length(times)),ncol=length(times))
 t_dist <- abs(apply(mat, 2, function(x) x-times))
 

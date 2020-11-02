@@ -8,11 +8,10 @@ likelihood_cpp_wrapper <- function(obs_dat, ages, pars, prob_infection, pos_only
   } else {
     use_func <- likelihood_cpp
   }
-
   for(obs_time in times){
     ages1 <- ages[(obs_time - ages) > 0]
     obs1 <- obs_dat %>% filter(t == obs_time) %>% pull(ct)
-    liks_tj <- liks_tj + use_func(obs1, obs_time, ages1, pars, prob_infection)
+    liks_tj <- liks_tj + sum(use_func(obs1, obs_time, ages1, pars, prob_infection))
   }
   liks_tj
 }

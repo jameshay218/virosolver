@@ -4,19 +4,20 @@ plot_prob_infection <- function(chain,
                                 INCIDENCE_FUNC,
                                 solve_times,
                                 obs_dat=NULL,
-                                true_prob_infection=NULL){
+                                true_prob_infection=NULL,
+                                tshift=0){
   samps <- sample(unique(chain$sampno),nsamps)
   all_res <- NULL
   for(i in seq_along(samps)){
     samp <- samps[i]
-    tmp_pars <- get_index_pars(chain, samp)
+    tmp_pars <- lazymcmc::get_index_pars(chain, samp)
     prob_infection_tmp <- INCIDENCE_FUNC(tmp_pars, solve_times)
-    all_res[[i]] <- tibble(t=solve_times,prob_infection=prob_infection_tmp,sampno=i)
+    all_res[[i]] <- tibble(t=solve_times+tshift,prob_infection=prob_infection_tmp,sampno=i)
   }
   posterior_dat <- do.call("bind_rows",all_res)
   best_pars <- get_best_pars(chain)
   best_prob_infection <- INCIDENCE_FUNC(best_pars, solve_times)
-  best_prob_dat <- tibble(t=solve_times,prob_infection=best_prob_infection,sampno="MAP")
+  best_prob_dat <- tibble(t=solve_times+tshift,prob_infection=best_prob_infection,sampno="MAP")
 
   p1 <- ggplot(posterior_dat) +
     geom_line(aes(x=t,y=prob_infection,group=sampno,col="Posterior draw"),size=0.1) +
@@ -56,7 +57,7 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
   all_res <- NULL
   for(i in seq_along(samps)){
     samp <- samps[i]
-    tmp_pars <- get_index_pars(chain, samp)
+    tmp_pars <- lazymcmc::get_index_pars(chain, samp)
     all_res[[i]] <- MODEL_FUNC(tmp_pars) %>% mutate(sampno=i)
   }
   posterior_dat <- do.call("bind_rows",all_res)
@@ -137,16 +138,20 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
     p1  /p2
 }
 #' @export
-plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd){
-  ggplot(chain) +
+plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd, real_data=FALSE){
+  p <- ggplot(chain) +
     geom_density(aes_string(var_name),fill="red",alpha=0.25) +
     stat_function(data=data.frame(x=c(parTab[parTab$names == var_name,"lower_bound"],
                                       parTab[parTab$names == var_name,"upper_bound"])),
                   aes(x),col="blue",
                   fun = dnorm, n = 101, args = list(mean = prior_mean, sd = prior_sd)) +
-    geom_vline(xintercept=parTab[parTab$names == var_name,"values"], linetype="dashed") +
     scale_y_continuous(expand=c(0,0)) +
     ylab("Density") +
     theme_classic()
+  if(!real_data){
+   p <- p +
+     geom_vline(xintercept=parTab[parTab$names == var_name,"values"], linetype="dashed")
+  }
+  p
 }
 

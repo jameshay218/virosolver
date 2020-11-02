@@ -88,3 +88,33 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
   }
   return(infection_times)
 }
+
+#' Simulate full line list data
+#'
+#' Takes a vector of infection incidence (absolute numbers) and returns a tibble with line list data for all
+#' individuals in the population. Infected individuals are assigned symptom onset, an incubation periods (if applicable)
+#' and confirmation delays from log normal and gamma distributions respectively.
+#'
+#' @export
+simulate_observations_wrapper <- function(
+  incidence, times, symp_frac=0.35,
+  population_n=length(incidence),
+  incu_period_par1=1.621,incu_period_par2=0.418,
+  conf_delay_par1=5,conf_delay_par2=2){
+
+  not_infected <- population_n-sum(incidence)
+  inc_dat <- tibble(infection_time=c(NA,times),inc=c(not_infected,incidence))
+  inc_dat <- inc_dat %>% uncount(inc)
+
+  inc_dat <- inc_dat %>%
+    mutate(i=1:n()) %>%
+    mutate(is_infected = ifelse(is.na(infection_time), 0, 1)) %>%
+    ## Is this individual going to be symptomatic?
+    mutate(is_symp=ifelse(is_infected, rbinom(n(), 1, symp_frac), 0)) %>%
+    ## Symptom onset time
+    mutate(incu_period=ifelse(is_infected & is_symp, rlnorm(n(), incu_period_par1, incu_period_par2), NA),
+           onset_time=infection_time+round(incu_period)) %>%
+    ## Confirmation time
+    mutate(confirmation_delay=extraDistr::rdgamma(n(),conf_delay_par1,conf_delay_par2))
+  inc_dat
+}

@@ -1,5 +1,6 @@
 #' @export
 viral_load_func <- function(pars, obs_t, convert_ct=TRUE, infection_time=0){
+  #browser()
   tshift <- pars["tshift"] + infection_time ## Days post infection until growth
   desired_mode <- pars["desired_mode"] #+ infection_time## Days post growth to peak
   t_switch <- pars["t_switch"] ## Days post peak to switch point
