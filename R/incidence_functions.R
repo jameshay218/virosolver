@@ -9,6 +9,20 @@ solveSEIRModel_rlsoda_wrapper <- function(pars, times){
 }
 
 #' @export
+solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
+  seir_pars <- c(pars["R0_1"]*(1/pars["infectious"]),
+                 pars["R0_2"]*(1/pars["infectious"]),
+                 pars["R0_3"]*(1/pars["infectious"]),
+                 1/pars["incubation"],1/pars["infectious"],
+                 pars["t_switch1"], pars["t_switch2"])
+  init <- c(1-pars["I0"],0,pars["I0"],0,0)
+  inc <- c(rep(0, pars["t0"]),0,diff(rlsoda::rlsoda(init, times, C_SEIR_switch_rlsoda, parms=seir_pars, dllname="virosolver",
+                                                    deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)[6,]))[1:length(times)]
+  inc <- pmax(0, inc)
+  inc
+}
+
+#' @export
 solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
   init <- c(1-pars["I0"],0,0,pars["I0"],0,0,0)
@@ -89,6 +103,14 @@ solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
   rlsoda::rlsoda(init, ts, C_SEIR_model_rlsoda, parms=pars, dllname="virosolver",
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
+#' @export
+solveSEIRswitch_rlsoda <- function(ts, init, pars,compatible=FALSE){
+  pars <- pars[c("beta1","beta2","beta3","sigma","gamma","t_switch1","t_switch2")]
+  print(pars)
+  rlsoda::rlsoda(init, ts, C_SEIR_switch_rlsoda, parms=pars, dllname="virosolver",
+                 deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
+}
+
 #' @export
 solveSEEIRRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
   pars <- pars[c("beta","sigma","alpha","gamma","omega")]

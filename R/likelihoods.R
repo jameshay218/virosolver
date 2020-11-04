@@ -2,7 +2,6 @@
 likelihood_cpp_wrapper <- function(obs_dat, ages, pars, prob_infection, pos_only=FALSE){
   times <- unique(obs_dat$t)
   liks_tj <- 0
-
   if(pos_only) {
     use_func <- likelihood_pos_only_cpp
   } else {
