@@ -1,20 +1,19 @@
 #' @export
-likelihood_cpp_wrapper <- function(obs_dat, ages, pars, prob_infection, pos_only=FALSE){
-  times <- unique(obs_dat$t)
+likelihood_cpp_wrapper <- function(obs_dat, ages, times,
+                                          pars, prob_infection, pos_only=FALSE){
   liks_tj <- 0
   if(pos_only) {
     use_func <- likelihood_pos_only_cpp
   } else {
     use_func <- likelihood_cpp
   }
-  for(obs_time in times){
-    ages1 <- ages[(obs_time - ages) > 0]
-    obs1 <- obs_dat %>% filter(t == obs_time) %>% pull(ct)
-    liks_tj <- liks_tj + sum(use_func(obs1, obs_time, ages1, pars, prob_infection))
+  for(i in seq_along(times)){
+    ages1 <- ages[(times[i] - ages) > 0]
+    obs1 <- obs_dat[[i]]
+    liks_tj <- liks_tj + sum(use_func(obs1, times[i], ages1, pars, prob_infection))
   }
   liks_tj
 }
-
 
 
 #' Function to give probability of observing x given age a and the viral kinetics curve

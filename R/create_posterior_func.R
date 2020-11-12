@@ -12,14 +12,21 @@ create_posterior_func <- function(parTab,
   ages <- 1:max(data$t)
   obs_times <- unique(data$t)
 
+  ## Pull out data into a list for quicker indexing later on
+  data_list <- NULL
+  for(i in seq_along(obs_times)){
+    data_list[[i]] <- data %>% filter(t == obs_times[i]) %>% pull(ct)
+  }
+
+
+
   f <- function(pars){
     names(pars) <- par_names
     prob_infection_tmp <- INCIDENCE_FUNC(pars, times)
-    #prob_infection_tmp[prob_infection_tmp < pars["I0"]] <- pars["I0"]
     if(solve_ver == "likelihood"){
       lik <- 0
       if(solve_likelihood){
-        lik <- sum(likelihood_cpp_wrapper(data, ages, pars, prob_infection_tmp,use_pos))
+        lik <- sum(likelihood_cpp_wrapper(data_list, ages, obs_times,pars, prob_infection_tmp,use_pos))
       }
 
       if(!is.null(PRIOR_FUNC)){
@@ -56,6 +63,7 @@ create_post_func_seeirr <- function(parTab, data, ts, INCIDENCE_FUNC=detectable_
   }
   f
 }
+
 #' @export
 create_post_func_seeirr_combined <- function(parTab, data, ts, INCIDENCE_FUNC=detectable_SEEIRRModel,
                                              PRIOR_FUNC=NULL,ver="likelihood"){

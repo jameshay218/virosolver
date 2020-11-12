@@ -81,6 +81,12 @@ NumericVector likelihood_cpp(NumericVector obs,
   NumericVector prob_detectable_dat(ages.size());
   double prob_undetectable=0;
 
+  // There may be an age at which the probability of retaining detectable vl is 0 because the
+  // viral load curve has waned so much. If we keep solving the likelihood up to this age,
+  // we get NaN because the renormalization sum is 0 (and we divdide by this). So track that
+  // oldest an infection can be and still be detectable
+  int max_age = 0;
+
   // Likelihoods for data points
   NumericVector liks_tj(obs.size());
 
@@ -91,6 +97,8 @@ NumericVector likelihood_cpp(NumericVector obs,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],true);
     renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+    // If still detectable from gumbel dist, then increase max age
+    if(renormalizes[i] > 0) max_age++;
   }
 
   // For each day since infection, calculate the probability that you are still detectable
@@ -115,7 +123,8 @@ NumericVector likelihood_cpp(NumericVector obs,
       // i) Probability of infection that day
       // ii) Probability still detectable today
       // iii) Probability of observing Ct value, given time since infection and being detectable+infected
-      for(int j = 0; j < vl_ages.size(); ++j){
+      //for(int j = 0; j < vl_ages.size(); ++j){
+      for(int j = 0; j < max_age; ++j){
         liks_tj[i] += (dgumbel_jh(obs[i], vl_ages[ages[j]-1], obs_sd)*
           prob_infection[obs_time-ages[j]-1]*
           prob_detectable_dat[ages[j]-1])/
@@ -163,6 +172,12 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
   NumericVector prob_detectable_dat(ages.size());
   double prob_detectable_and_infected=0;
 
+  // There may be an age at which the probability of retaining detectable vl is 0 because the
+  // viral load curve has waned so much. If we keep solving the likelihood up to this age,
+  // we get NaN because the renormalization sum is 0 (and we divdide by this). So track that
+  // oldest an infection can be and still be detectable
+  int max_age = 0;
+
   // Likelihoods for data points
   NumericVector liks_tj(obs.size());
 
@@ -173,6 +188,8 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],true);
     renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+    // If still detectable from gumbel dist, then increase max age
+    if(renormalizes[i] > 0) max_age++;
   }
 
   // For each day since infection, calculate the probability that you are still detectable
@@ -185,7 +202,6 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
     prob_detectable_and_infected += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
   }
 
-
   // For each observation, find log likelihood
   // Note, all Cts are detectable here
   for(int i = 0; i < obs.size(); ++i){
@@ -193,13 +209,13 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
       // i) Probability of infection that day
       // ii) Probability still detectable today
       // iii) Probability of observing Ct value, given time since infection and being detectable+infected
-      for(int j = 0; j < vl_ages.size(); ++j){
+      //for(int j = 0; j < vl_ages.size(); ++j){
+        for(int j = 0; j < max_age; ++j){
         liks_tj[i] += (dgumbel_jh(obs[i], vl_ages[ages[j]-1], obs_sd)*
           prob_infection[obs_time-ages[j]-1]*
           prob_detectable_dat[ages[j]-1])/
             renormalizes[ages[j]-1]  ;
       }
-
     liks_tj[i] = log(liks_tj[i]/prob_detectable_and_infected);
   }
   return liks_tj;
