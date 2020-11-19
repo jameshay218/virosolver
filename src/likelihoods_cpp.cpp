@@ -68,7 +68,7 @@ NumericVector likelihood_cpp(NumericVector obs,
 
   // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - lod)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
 
@@ -95,7 +95,7 @@ NumericVector likelihood_cpp(NumericVector obs,
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
                                             obs_sd, level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
-                                            ages[i],true);
+                                            ages[i],false);
     renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
     // If still detectable from gumbel dist, then increase max age
     if(renormalizes[i] > 0) max_age++;
@@ -159,7 +159,7 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
 
   // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - lod)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
 
@@ -186,7 +186,7 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
                                             obs_sd, level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
-                                            ages[i],true);
+                                            ages[i],false);
     renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
     // If still detectable from gumbel dist, then increase max age
     if(renormalizes[i] > 0) max_age++;
@@ -252,7 +252,7 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
                                             obs_sd, level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
-                                            ages[i],true);
+                                            ages[i],false);
     renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
   }
   NumericVector prob_detectable_dat(ages.size());

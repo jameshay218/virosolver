@@ -116,3 +116,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// viral_load_func_single_cpp_old
+double viral_load_func_single_cpp_old(double tshift, double desired_mode, double t_switch, double viral_peak, double obs_sd, double level_switch, double true_0, double yintercept, double lod, double wane_rate, double wane_rate2, double growth_rate, double obs_t, bool convert_ct);
+RcppExport SEXP _virosolver_viral_load_func_single_cpp_old(SEXP tshiftSEXP, SEXP desired_modeSEXP, SEXP t_switchSEXP, SEXP viral_peakSEXP, SEXP obs_sdSEXP, SEXP level_switchSEXP, SEXP true_0SEXP, SEXP yinterceptSEXP, SEXP lodSEXP, SEXP wane_rateSEXP, SEXP wane_rate2SEXP, SEXP growth_rateSEXP, SEXP obs_tSEXP, SEXP convert_ctSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type tshift(tshiftSEXP);
+    Rcpp::traits::input_parameter< double >::type desired_mode(desired_modeSEXP);
+    Rcpp::traits::input_parameter< double >::type t_switch(t_switchSEXP);
+    Rcpp::traits::input_parameter< double >::type viral_peak(viral_peakSEXP);
+    Rcpp::traits::input_parameter< double >::type obs_sd(obs_sdSEXP);
+    Rcpp::traits::input_parameter< double >::type level_switch(level_switchSEXP);
+    Rcpp::traits::input_parameter< double >::type true_0(true_0SEXP);
+    Rcpp::traits::input_parameter< double >::type yintercept(yinterceptSEXP);
+    Rcpp::traits::input_parameter< double >::type lod(lodSEXP);
+    Rcpp::traits::input_parameter< double >::type wane_rate(wane_rateSEXP);
+    Rcpp::traits::input_parameter< double >::type wane_rate2(wane_rate2SEXP);
+    Rcpp::traits::input_parameter< double >::type growth_rate(growth_rateSEXP);
+    Rcpp::traits::input_parameter< double >::type obs_t(obs_tSEXP);
+    Rcpp::traits::input_parameter< bool >::type convert_ct(convert_ctSEXP);
+    rcpp_result_gen = Rcpp::wrap(viral_load_func_single_cpp_old(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct));
+    return rcpp_result_gen;
+END_RCPP
+}

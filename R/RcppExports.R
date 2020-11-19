@@ -29,3 +29,7 @@ viral_load_func_single_cpp <- function(tshift, desired_mode, t_switch, viral_pea
     .Call('_virosolver_viral_load_func_single_cpp', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct)
 }
 
+viral_load_func_single_cpp_old <- function(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct) {
+    .Call('_virosolver_viral_load_func_single_cpp_old', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct)
+}
+

@@ -1,5 +1,38 @@
 #' @export
-viral_load_func <- function(pars, obs_t, convert_ct=TRUE, infection_time=0){
+viral_load_func <- function(pars, obs_t, convert_ct=FALSE, infection_time=0){
+  tshift <- pars["tshift"] + infection_time ## Days post infection until growth
+  desired_mode <- pars["desired_mode"] ## Days post growth to peak
+  t_switch <- pars["t_switch"] ## Days post peak to switch point
+
+  height <- pars["viral_peak"] ## Peak Ct value
+  level_switch <- pars["level_switch"] ## Ct value at the switch
+
+  true_0 <- pars["true_0"] ## y-axis shift
+  ct_intercept <- pars["intercept"] ## Ct intercept
+  wane_rate <- (height-level_switch)/t_switch
+  wane_rate2 <- (level_switch-ct_intercept)/pars["wane_rate2"]
+  growth_rate <- (height-true_0)/desired_mode
+
+
+  t_period1 <- obs_t <= tshift
+  t_period2 <- obs_t > tshift & obs_t <= (desired_mode + tshift)
+  t_period3 <- obs_t > (desired_mode + tshift) & obs_t <= (desired_mode + tshift + t_switch)
+  t_period4 <- obs_t > (desired_mode + tshift + t_switch)
+
+  y <- numeric(length(obs_t))
+  y[t_period1] <- true_0
+  y[t_period2] <- growth_rate * (obs_t[t_period2] - tshift) + true_0
+  y[t_period3] <- height - wane_rate * (obs_t[t_period3] - (desired_mode+tshift))
+  y[t_period4] <- level_switch - wane_rate2*(obs_t[t_period4] - (desired_mode + tshift + t_switch))
+  ct <- y
+  if(convert_ct){
+    vl <- ((ct_intercept-ct)/log2(10)) + pars["LOD"]
+    y <- vl
+  }
+  y
+}
+
+viral_load_func_old <- function(pars, obs_t, convert_ct=TRUE, infection_time=0){
   #browser()
   tshift <- pars["tshift"] + infection_time ## Days post infection until growth
   desired_mode <- pars["desired_mode"] #+ infection_time## Days post growth to peak

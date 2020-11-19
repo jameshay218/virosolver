@@ -3,8 +3,7 @@ simulate_viral_loads <- function(infection_times,
                                  solve_times,
                                  kinetics_pars,
                                  vl_func_use=viral_load_func,
-                                 additional_detect_process=TRUE,
-                                 convert_ct=TRUE,
+                                 convert_vl=FALSE,
                                  add_noise=NULL){
   viral_loads <- matrix(-100, nrow=length(infection_times), ncol=length(solve_times))
   n <- length(infection_times)
@@ -39,21 +38,21 @@ simulate_viral_loads <- function(infection_times,
   }
   colnames(viral_loads) <- solve_times
 
-  if(convert_ct) {
-    viral_loads <- kinetics_pars["intercept"] - log2(10)*(viral_loads - kinetics_pars["LOD"])
-    true_viral_loads <- viral_loads
-    true_viral_loads[true_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]
-  } else {
+  if(convert_vl) {
+    viral_loads <- ((kinetics_pars["intercept"]-viral_loads)/log2(10)) + kinetics_pars["LOD"]
     true_viral_loads <- viral_loads
     true_viral_loads[true_viral_loads < kinetics_pars["LOD"]] <- kinetics_pars["LOD"]
+  } else {
+    true_viral_loads <- viral_loads
+    true_viral_loads[true_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]
   }
   if(!is.null(add_noise)){
     observed_viral_loads <- t(apply(viral_loads, 1, function(vl) add_noise(length(vl),vl, kinetics_pars["obs_sd"])))
     colnames(observed_viral_loads) <- solve_times
     if(convert_ct) {
-      observed_viral_loads[observed_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]
-    } else {
       observed_viral_loads[observed_viral_loads < kinetics_pars["LOD"]] <- kinetics_pars["LOD"]
+    } else {
+      observed_viral_loads[observed_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]
     }
   } else {
     observed_viral_loads <- true_viral_loads
