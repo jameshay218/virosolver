@@ -19,7 +19,7 @@ simulate_viral_loads <- function(infection_times,
     if(infection_times[i] > 0){
       pars <- kinetics_pars
       mod_probs <- rep(1, length(solve_times))
-      vl <- vl_func_use(pars, times, FALSE, infection_times[i])
+      ct <- vl_func_use(pars, times, FALSE, infection_times[i])
       ## Additional way that individuals can become undetectable
       if(additional_detect_process){
         ## How long to wait until undetectable?
@@ -29,11 +29,11 @@ simulate_viral_loads <- function(infection_times,
                           infection_times[i] +
                           days_still_detectable[i])] <- 0
       }
-      vl[vl < kinetics_pars["true_0"]] <- kinetics_pars["true_0"]
-      vl[which(times < infection_times[i])] <- -100
-      vl <- vl * mod_probs
-      vl[which(mod_probs == 0)] <- -100
-      viral_loads[i,] <- vl
+      ct[ct > kinetics_pars["true_0"]] <- kinetics_pars["true_0"]
+      ct[which(times < infection_times[i])] <- 1000
+      ct <- ct * mod_probs
+      ct[which(mod_probs == 0)] <- 1000
+      viral_loads[i,] <- ct
     }
   }
   colnames(viral_loads) <- solve_times

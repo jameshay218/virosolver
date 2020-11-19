@@ -58,7 +58,7 @@ inf_times <- simulate_infection_times(n_per_samp,prob_infection)
 ## Simulate viral loads/ct values
 viral_loads <- simulate_viral_loads(inf_times, times, pars,
                                     additional_detect_process = TRUE,
-                                    convert_ct=TRUE,
+                                    convert_vl=FALSE,
                                     add_noise=rgumbel)
 
 ## Subset simulated viral loads to observation times

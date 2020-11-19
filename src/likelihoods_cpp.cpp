@@ -14,7 +14,7 @@ double viral_load_func_single_cpp(double tshift,
                                   double wane_rate2,
                                   double growth_rate,
                                   double obs_t,
-                                  bool convert_ct);
+                                  bool convert_vl);
 
 // [[Rcpp::export]]
 double dgumbel_jh(double x, double mu, double sigma){

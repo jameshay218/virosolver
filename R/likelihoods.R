@@ -61,7 +61,7 @@ p_a <- function(x,a,pars,viral_loads) {
 
 #' Probability of having a detectable Ct for a given time since infection
 #' @export
-prop_detectable <- function(a, pars,viral_loads){
+prop_detectable_single <- function(a, pars,viral_loads){
   viral_load_sd <- pars["obs_sd"]
   LOD <- pars["intercept"]
   additional_prob <- 1
@@ -75,6 +75,11 @@ prop_detectable <- function(a, pars,viral_loads){
 
   main_probs <- extraDistr::pgumbel(LOD,mu=viral_loads[a],sigma=viral_load_sd, lower.tail=TRUE, log.p=FALSE)
   main_probs * additional_prob
+}
+
+#' @export
+prop_detectable <- function(a, pars,viral_loads){
+  sapply(a, function(x) prop_detectable_single(x, pars, viral_loads))
 }
 
 #'
