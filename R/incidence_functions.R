@@ -96,6 +96,25 @@ gaussian_process_model <- function(pars, times){
   prob_infection_tmp
 }
 
+#' Given a vector of daily infection probabilities, converts this to the input expected by the Gaussian process model
+#' @export
+reverse_gp_model <- function(desired_probs, pars, times){
+  mat <- matrix(rep(times, each=length(times)),ncol=length(times))
+  t_dist <- abs(apply(mat, 2, function(x) x-times))
+  nu <- pars["nu"]
+  rho <- pars["rho"]
+  K <- nu^2 * exp(-rho^2 * t_dist^2)
+  diag(K) <- diag(K) + 0.01
+  L_K <- chol(K)
+
+  ps <- sum(desired_probs)*desired_probs
+  k1 <- -log(1/ps -1)
+
+  k_solve <- (k1 %*% solve(t(L_K)))[1,]
+  k_solve
+}
+
+
 
 #' @export
 solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){

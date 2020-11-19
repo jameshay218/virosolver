@@ -8,16 +8,36 @@ create_posterior_func <- function(parTab,
                                   use_pos=FALSE,
                                   ...) {
   par_names <- parTab$names
+  pars <- parTab$values
+  names(pars) <- par_names
   times <- 0:max(data$t)
   ages <- 1:max(data$t)
   obs_times <- unique(data$t)
 
+  ## Pull out undetectable Ct values and count how many per observation time
+  ## We only need get the likelihood of an undetectable Ct value once per time point,
+  ## and then just have this contribute N times where N is the number of undetectable Cts
+  ## at that time point
+  data_use <- data
+  undetectable_counts <- NULL
+  if("intercept" %in% par_names){
+    undetectable_tally <- data_use %>%
+      filter(ct >= pars["intercept"]) %>%
+      group_by(t) %>%
+      tally()
+    no_undetectable_times <- setdiff(obs_times, unique(undetectable_tally$t))
+    no_undetectable_tally <- tibble(t=no_undetectable_times,n=0)
+    undetectable_tally <- bind_rows(undetectable_tally, no_undetectable_tally) %>% arrange(t)
+    undetectable_counts <- undetectable_tally$n
+    data_use <- data_use %>% filter(ct < pars["intercept"])
+  }
+
+
   ## Pull out data into a list for quicker indexing later on
   data_list <- NULL
   for(i in seq_along(obs_times)){
-    data_list[[i]] <- data %>% filter(t == obs_times[i]) %>% pull(ct)
+    data_list[[i]] <- data_use %>% filter(t == obs_times[i]) %>% pull(ct)
   }
-
 
 
   f <- function(pars){
@@ -26,7 +46,8 @@ create_posterior_func <- function(parTab,
     if(solve_ver == "likelihood"){
       lik <- 0
       if(solve_likelihood){
-        lik <- sum(likelihood_cpp_wrapper(data_list, ages, obs_times,pars, prob_infection_tmp,use_pos))
+        lik <- sum(likelihood_cpp_wrapper(data_list, ages, obs_times,pars, prob_infection_tmp,
+                                          use_pos,undetectable_counts))
       }
 
       if(!is.null(PRIOR_FUNC)){

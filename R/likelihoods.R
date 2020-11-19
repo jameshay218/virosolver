@@ -1,6 +1,8 @@
 #' @export
 likelihood_cpp_wrapper <- function(obs_dat, ages, times,
-                                          pars, prob_infection, pos_only=FALSE){
+                                   pars, prob_infection,
+                                   pos_only=FALSE,
+                                   undetectable_counts=NULL){
   liks_tj <- 0
   if(pos_only) {
     use_func <- likelihood_pos_only_cpp
@@ -10,10 +12,41 @@ likelihood_cpp_wrapper <- function(obs_dat, ages, times,
   for(i in seq_along(times)){
     ages1 <- ages[(times[i] - ages) > 0]
     obs1 <- obs_dat[[i]]
-    liks_tj <- liks_tj + sum(use_func(obs1, times[i], ages1, pars, prob_infection))
+    ## Undetectable Cts
+    undetectable_lik <- 0
+    if(!is.null(undetectable_counts) & !pos_only) {
+      undetectable_lik <-  use_func(pars["intercept"], times[i], ages1,
+                                    pars, prob_infection)*undetectable_counts[i]
+    }
+
+    liks_tj <- liks_tj +
+      sum(use_func(obs1, times[i], ages1, pars, prob_infection)) + ## Detectable Cts
+      undetectable_lik
   }
   liks_tj
 }
+
+#' @export
+likelihood_cpp_wrapper_old <- function(obs_dat, ages, times,
+                                       pars, prob_infection,
+                                       pos_only=FALSE){
+  liks_tj <- 0
+  if(pos_only) {
+    use_func <- likelihood_pos_only_cpp
+  } else {
+    use_func <- likelihood_cpp
+  }
+  for(i in seq_along(times)){
+    ages1 <- ages[(times[i] - ages) > 0]
+    obs1 <- obs_dat[[i]]
+    #print(length(obs1))
+
+    liks_tj <- liks_tj +
+      sum(use_func(obs1, times[i], ages1, pars, prob_infection))
+  }
+  liks_tj
+}
+
 
 
 #' Function to give probability of observing x given age a and the viral kinetics curve
