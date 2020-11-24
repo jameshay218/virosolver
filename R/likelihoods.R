@@ -54,7 +54,8 @@ likelihood_cpp_wrapper_old <- function(obs_dat, ages, times,
 p_a <- function(x,a,pars,viral_loads) {
   viral_load_sd <- pars["obs_sd"]
   LOD <- pars["intercept"]
-  renormalize <- extraDistr::pgumbel(LOD, viral_loads[a],viral_load_sd,lower.tail=TRUE)
+  renormalize <- extraDistr::pgumbel(LOD, viral_loads[a],viral_load_sd,lower.tail=TRUE) -
+    extraDistr::pgumbel(0, viral_loads[a],viral_load_sd,lower.tail=TRUE)
   probs <- extraDistr::dgumbel(x, mu=viral_loads[a], sigma=viral_load_sd, log=FALSE)/renormalize
   probs
 }
@@ -65,15 +66,18 @@ prop_detectable_single <- function(a, pars,viral_loads){
   viral_load_sd <- pars["obs_sd"]
   LOD <- pars["intercept"]
   additional_prob <- 1
-
   ## How many days spent in detectability loss phase?
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
+
+  #if(a >= t_switch) {
+  #  viral_load_sd <- viral_load_sd * pars["mod"]
+  #}
   days_potential_loss <- a - t_switch
   if(days_potential_loss >= 0){
     additional_prob <- (1-pars["prob_detect"]*pars["t_unit"])^days_potential_loss
   }
-
   main_probs <- extraDistr::pgumbel(LOD,mu=viral_loads[a],sigma=viral_load_sd, lower.tail=TRUE, log.p=FALSE)
+  #main_probs <- pnorm(LOD,mean=viral_loads[a],sd=viral_load_sd, lower.tail=TRUE, log.p=FALSE)
   main_probs * additional_prob
 }
 

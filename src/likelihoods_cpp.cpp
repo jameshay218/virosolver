@@ -23,10 +23,21 @@ double dgumbel_jh(double x, double mu, double sigma){
   return prob;
 }
 // [[Rcpp::export]]
-double pgumbel_jh(double x, double mu, double sigma){
+double pgumbel_scale(double x, double mu, double sigma){
+  // Get probability between 0 and the limit of detection, x
   double a = (x-mu)/sigma;
   double prob = exp(-exp(-a));
   return prob;
+}
+// [[Rcpp::export]]
+double pgumbel_jh(double x, double mu, double sigma){
+  // Get probability between 0 and the limit of detection, x
+  double a = (x-mu)/sigma;
+  double prob = exp(-exp(-a));
+
+  double a1 = (0-mu)/sigma;
+  double prob1 = exp(-exp(-a1));
+  return prob - prob1;
 }
 
 
@@ -40,9 +51,9 @@ double prop_detectable_cpp(double a,
   double days_loss = a - t_switch;
   double additional_prob = 1;
   if(days_loss >= 0){
-    additional_prob = pow((1-prob_detect),days_loss);\
+    additional_prob = pow((1-prob_detect),days_loss);
   }
-  double main_prob = pgumbel_jh(lod, viral_load, obs_sd)*additional_prob;
+  double main_prob = pgumbel_scale(lod, viral_load, obs_sd)*additional_prob;
   return main_prob;
 }
 
@@ -96,7 +107,7 @@ NumericVector likelihood_cpp(NumericVector obs,
                                             obs_sd, level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
-    renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);
     // If still detectable from gumbel dist, then increase max age
     if(renormalizes[i] > 0) max_age++;
   }
@@ -110,7 +121,6 @@ NumericVector likelihood_cpp(NumericVector obs,
     prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
   }
   prob_undetectable = 1 - prob_undetectable;
-
 
   // For each observation, find log likelihood
   for(int i = 0; i < obs.size(); ++i){
@@ -187,7 +197,7 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
                                             obs_sd, level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
-    renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);
     // If still detectable from gumbel dist, then increase max age
     if(renormalizes[i] > 0) max_age++;
   }
@@ -239,12 +249,14 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
   double level_switch = pars["level_switch"];
   double true_0 = pars["true_0"];
   double yintercept = pars["intercept"];
+  // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - lod)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
+  double t_switch1 = t_switch + desired_mode + tshift;
+
   double prob_detect = pars["prob_detect"];
 
-  double t_switch1 = t_switch + desired_mode + tshift;
   NumericVector vl_ages(ages.size());
   NumericVector renormalizes(ages.size());
   double prob_undetectable=0;
@@ -253,7 +265,7 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
                                             obs_sd, level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
-    renormalizes[i] = pgumbel_jh(yintercept, vl_ages[i],obs_sd);
+    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);
   }
   NumericVector prob_detectable_dat(ages.size());
   for(int i = 0; i < prob_detectable_dat.size(); ++i){

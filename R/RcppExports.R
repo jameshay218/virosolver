@@ -5,6 +5,10 @@ dgumbel_jh <- function(x, mu, sigma) {
     .Call('_virosolver_dgumbel_jh', PACKAGE = 'virosolver', x, mu, sigma)
 }
 
+pgumbel_scale <- function(x, mu, sigma) {
+    .Call('_virosolver_pgumbel_scale', PACKAGE = 'virosolver', x, mu, sigma)
+}
+
 pgumbel_jh <- function(x, mu, sigma) {
     .Call('_virosolver_pgumbel_jh', PACKAGE = 'virosolver', x, mu, sigma)
 }
@@ -25,11 +29,7 @@ pred_dist_cpp <- function(test_cts, ages, obs_time, pars, prob_infection) {
     .Call('_virosolver_pred_dist_cpp', PACKAGE = 'virosolver', test_cts, ages, obs_time, pars, prob_infection)
 }
 
-viral_load_func_single_cpp <- function(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct) {
-    .Call('_virosolver_viral_load_func_single_cpp', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct)
-}
-
-viral_load_func_single_cpp_old <- function(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct) {
-    .Call('_virosolver_viral_load_func_single_cpp_old', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_ct)
+viral_load_func_single_cpp <- function(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl) {
+    .Call('_virosolver_viral_load_func_single_cpp', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl)
 }
 
