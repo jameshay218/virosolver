@@ -34,10 +34,24 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 
 #' @export
 pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection){
+  ## Because we have a different standard deviation for different
+  ## Time at which standard deviation is reduced
+  t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
+  sd_mod <- rep(pars["sd_mod"], length(ages)) ## Up until t_switch, full standard deviation
+
+  ## Prior to t_switch, 1
+  unmod_vec <- 1:min(t_switch,length(ages))
+  sd_mod[unmod_vec] <- 1
+
+  ## For the next sd_mod_wane days, decrease linearly
+  decrease_vec <- (t_switch+1):(t_switch+pars["sd_mod_wane"])
+  sd_mod[decrease_vec] <- 1 - ((1-pars["sd_mod"])/pars["sd_mod_wane"])*seq_len(pars["sd_mod_wane"])
+  ## The rest are at sd_mod
+
   comb_dat <- NULL
   for(obs_time in obs_times){
     ages1 <- ages[(obs_time - ages) > 0]
-    densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection)
+    densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod)
     comb_dat[[obs_time]] <- tibble(ct=test_cts,density=densities, t=obs_time)
   }
   comb_dat <- do.call("bind_rows",comb_dat)
