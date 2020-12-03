@@ -48,6 +48,23 @@ plot_prob_infection <- function(chain,
 }
 
 #' @export
+predicted_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
+  best_pars <- get_best_pars(chain)
+  best_dat <- MODEL_FUNC(best_pars)
+
+  ## Generate posterior draws for Ct distribution prediction
+  samps <- sample(unique(chain$sampno),nsamps)
+  all_res <- NULL
+  for(i in seq_along(samps)){
+    samp <- samps[i]
+    tmp_pars <- lazymcmc::get_index_pars(chain, samp)
+    all_res[[i]] <- MODEL_FUNC(tmp_pars) %>% mutate(sampno=i)
+  }
+  posterior_dat <- do.call("bind_rows",all_res)
+  posterior_dat
+}
+
+#' @export
 plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
   best_pars <- get_best_pars(chain)
   best_dat <- MODEL_FUNC(best_pars)
