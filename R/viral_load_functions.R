@@ -43,7 +43,7 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection){
   unmod_vec <- 1:min(t_switch,length(ages))
   sd_mod[unmod_vec] <- 1
 
-  ## For the next sd_mod_wane days, decrease linearly
+  ## For the next sd_mod_wane days, variance about modal Ct trajectory decrease linearly
   decrease_vec <- (t_switch+1):(t_switch+pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-pars["sd_mod"])/pars["sd_mod_wane"])*seq_len(pars["sd_mod_wane"])
   ## The rest are at sd_mod

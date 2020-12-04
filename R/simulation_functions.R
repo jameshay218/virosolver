@@ -8,6 +8,17 @@ simulate_viral_loads <- function(infection_times,
   viral_loads <- matrix(-100, nrow=length(infection_times), ncol=length(solve_times))
   n <- length(infection_times)
 
+
+  ## Control for changing standard deviation
+  test_ages <- 1:1000
+  t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
+  sd_mod <- rep(kinetics_pars["sd_mod"], max(test_ages))
+  unmod_vec <- 1:min(t_switch,max(test_ages))
+  sd_mod[unmod_vec] <- 1
+  decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
+  sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
+
+
   ## Pre-compute negative binomial draws for loss in detectability
   if(additional_detect_process){
     ## How many days do you remain detectable after hitting the switch point?
