@@ -105,10 +105,11 @@ NumericVector likelihood_cpp(NumericVector obs,
   // For each age since infection, calculated the expected viral load and normalization factor
   for(int i = 0; i < vl_ages.size(); ++i){
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
-                                            obs_sd*sd_mod_vec[i], level_switch,true_0, yintercept,
+                                            obs_sd*sd_mod_vec[i],level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
     renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);
+    //renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);
     // If still detectable from gumbel dist, then increase max age
     if(renormalizes[i] > 0) max_age++;
   }
@@ -117,8 +118,8 @@ NumericVector likelihood_cpp(NumericVector obs,
   // Conditional on the probability of infection and viral kinetics model
   // Also calculate the overall probability of remaining undetectable the whole time
   for(int i = 0; i < prob_detectable_dat.size(); ++i){
-    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i], yintercept,
-                                                 t_switch1, prob_detect);
+    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i],
+                                                 yintercept,t_switch1, prob_detect);
     prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
   }
   prob_undetectable = 1 - prob_undetectable;
@@ -201,7 +202,7 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
   // For each age since infection, calculated the expected viral load and normalization factor
   for(int i = 0; i < vl_ages.size(); ++i){
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
-                                            obs_sd*sd_mod_vec[i], level_switch,true_0, yintercept,
+                                            obs_sd*sd_mod_vec[i],level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
     renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);
@@ -214,8 +215,8 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
   // Also calculate the overall probability of being infected on each day in the past and
   //   still being detectable today
   for(int i = 0; i < prob_detectable_dat.size(); ++i){
-    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i], yintercept,
-                                                 t_switch1, prob_detect);
+    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i],
+                                                 yintercept,t_switch1, prob_detect);
     prob_detectable_and_infected += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
   }
 
@@ -270,15 +271,15 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
   double prob_undetectable=0;
   for(int i = 0; i < vl_ages.size(); ++i){
     vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
-                                            obs_sd*sd_mod_vec[i], level_switch,true_0, yintercept,
+                                            obs_sd*sd_mod_vec[i],level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
     renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);
   }
   NumericVector prob_detectable_dat(ages.size());
   for(int i = 0; i < prob_detectable_dat.size(); ++i){
-    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i], yintercept,
-                                                 t_switch1, prob_detect);
+    prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i],
+                                                 yintercept,t_switch1, prob_detect);
     prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
 
     // If no one is detectable of a certain age since infection, then we will be dividing

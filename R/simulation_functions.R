@@ -111,7 +111,6 @@ simulate_observations_wrapper <- function(
   population_n=length(incidence),
   incu_period_par1=1.621,incu_period_par2=0.418,
   conf_delay_par1=5,conf_delay_par2=2){
-
   not_infected <- population_n-sum(incidence)
   inc_dat <- tibble(infection_time=c(NA,times),inc=c(not_infected,incidence))
   inc_dat <- inc_dat %>% uncount(inc)
