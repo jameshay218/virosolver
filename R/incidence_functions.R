@@ -80,16 +80,13 @@ gaussian_process_model <- function(pars, times){
 
   mat <- matrix(rep(times, each=length(times)),ncol=length(times))
   t_dist <- abs(apply(mat, 2, function(x) x-times))
-
   mus <- rep(0, length(times))
-
   nu <- pars["nu"]
   rho <- pars["rho"]
   K <- nu^2 * exp(-rho^2 * t_dist^2)
   diag(K) <- diag(K) + 0.01
-  L_K <- chol(K)
+  L_K <- t(chol(K))
   k1 <- (L_K %*% k)[,1]
-
   ps <- 1/(1+exp(-k1))
   ps <- ps/sum(ps)
   prob_infection_tmp <- ps*overall_prob
@@ -107,8 +104,8 @@ reverse_gp_model <- function(desired_probs, pars, times){
   diag(K) <- diag(K) + 0.01
   L_K <- chol(K)
 
-  ps <- sum(desired_probs)*desired_probs
-  k1 <- -log(1/ps -1)
+  ps <- sum(desired_probs)*desired_probs + 0.000000001
+  k1 <- -log((1/ps) -1)
 
   k_solve <- (k1 %*% solve(t(L_K)))[1,]
   k_solve

@@ -79,7 +79,7 @@ prop_detectable_single <- function(a, pars,viral_loads, sd_mod){
 }
 
 #' @export
-prop_detectable <- function(a, pars,viral_loads){
+prop_detectable <- function(ages, pars,viral_loads){
   ## Because we have a different standard deviation for different
   ## Time at which standard deviation is reduced
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
@@ -95,7 +95,7 @@ prop_detectable <- function(a, pars,viral_loads){
   sd_mod[decrease_vec] <- 1 - ((1-pars["sd_mod"])/pars["sd_mod_wane"])*seq_len(pars["sd_mod_wane"])
   ## The rest are at sd_mod
 
-  vapply(a, function(x){
+  vapply(ages, function(x){
     prop_detectable_single(x, pars, viral_loads, sd_mod)
   },FUN.VALUE=numeric(1))
 }
