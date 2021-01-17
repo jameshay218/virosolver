@@ -8,7 +8,6 @@ simulate_viral_loads <- function(infection_times,
   viral_loads <- matrix(-100, nrow=length(infection_times), ncol=length(solve_times))
   n <- length(infection_times)
 
-
   ## Control for changing standard deviation
   test_ages <- 1:1000
   t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
@@ -20,28 +19,26 @@ simulate_viral_loads <- function(infection_times,
 
 
   ## Pre-compute negative binomial draws for loss in detectability
-  if(additional_detect_process){
+  #if(additional_detect_process){
     ## How many days do you remain detectable after hitting the switch point?
     days_still_detectable <- rnbinom(n, size=1,prob=kinetics_pars["prob_detect"])
-  }
+  #}
 
   for(i in seq_along(infection_times)){
     if(i %% 1000 == 0) message(i)
     if(infection_times[i] > 0){
       pars <- kinetics_pars
       mod_probs <- rep(1, length(solve_times))
-      ct <- vl_func_use(pars, times, FALSE, infection_times[i])
+      ct <- vl_func_use(pars, solve_times, FALSE, infection_times[i])
       ## Additional way that individuals can become undetectable
-      if(additional_detect_process){
         ## How long to wait until undetectable?
-        mod_probs[which(times >= kinetics_pars["tshift"] +
-                          kinetics_pars["desired_mode"] +
-                          kinetics_pars["t_switch"] +
-                          infection_times[i] +
-                          days_still_detectable[i])] <- 0
-      }
+      mod_probs[which(solve_times >= kinetics_pars["tshift"] +
+                        kinetics_pars["desired_mode"] +
+                        kinetics_pars["t_switch"] +
+                        infection_times[i] +
+                        days_still_detectable[i])] <- 0
       ct[ct > kinetics_pars["true_0"]] <- kinetics_pars["true_0"]
-      ct[which(times < infection_times[i])] <- 1000
+      ct[which(solve_times < infection_times[i])] <- 1000
       ct <- ct * mod_probs
       ct[which(mod_probs == 0)] <- 1000
       viral_loads[i,] <- ct
@@ -60,7 +57,7 @@ simulate_viral_loads <- function(infection_times,
   if(!is.null(add_noise)){
     observed_viral_loads <- t(apply(viral_loads, 1, function(vl) add_noise(length(vl),vl, kinetics_pars["obs_sd"])))
     colnames(observed_viral_loads) <- solve_times
-    if(convert_ct) {
+    if(convert_vl) {
       observed_viral_loads[observed_viral_loads < kinetics_pars["LOD"]] <- kinetics_pars["LOD"]
     } else {
       observed_viral_loads[observed_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]

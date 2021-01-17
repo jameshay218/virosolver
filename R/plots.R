@@ -65,7 +65,8 @@ predicted_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
 }
 
 #' @export
-plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
+plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100,pos_only=TRUE){
+
   best_pars <- get_best_pars(chain)
   best_dat <- MODEL_FUNC(best_pars)
 
@@ -79,34 +80,62 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
   }
   posterior_dat <- do.call("bind_rows",all_res)
 
+  ## Make sure only plotting detectable, and get label
+  obs_dat1 <- obs_dat %>%
+    filter(ct < best_pars["intercept"]) %>%
+    mutate(obs_t=paste0("Sample day: ", t))
+
+  ## Get number of observations per time point
+  obs_tally <- obs_dat1 %>% group_by(t) %>% tally()
+
+  ## Re-scale densities to only detectable Ct distribution densities
+  total_density <- posterior_dat %>%
+    filter(ct < best_pars["intercept"]) %>%
+    group_by(t,sampno) %>%
+    summarize(total_dens=sum(density)) %>%
+    left_join(obs_tally)
+
+  ## Get expected number of observations for each Ct,
+  ## also simulate observations
   summary_posterior_dat <- posterior_dat %>%
     filter(ct < best_pars["intercept"]) %>%
+    left_join(total_density) %>%
     group_by(t, sampno) %>%
-    mutate(max_density = max(density),
-              max_density = max(1e-10, max_density)) %>%
-    mutate(density=density/max_density) %>%
+    mutate(density=density/total_dens) %>%
+    ungroup() %>%
+    mutate(expectation=density*n) %>%
+    ungroup() %>%
+    mutate(sim_obs=rbinom(n(),n,density)) %>%
+    group_by(ct, t)
+
+  summary_expectation <- summary_posterior_dat %>%
     group_by(ct, t) %>%
-    summarize(lower=quantile(density,0.025),
-              median=quantile(density,0.5),
-              upper=quantile(density,0.975))
-  p1 <- ggplot(obs_dat %>%
-                 filter(ct < best_pars["intercept"]) %>%
-             mutate(obs_t=paste0("Sample day: ", t))
-           ) +
-    geom_histogram(aes(x=ct,y=..ncount..),binwidth=1,fill="grey70",col="grey20",boundary=0) +
-    geom_ribbon(data=summary_posterior_dat,aes(x=ct+0.5,ymin=lower,ymax=upper),fill="blue",alpha=0.25)+
-    geom_line(data=summary_posterior_dat,aes(x=ct+0.5,y=median),col="blue") +
-      geom_line(data=best_dat%>%
-                  group_by(t) %>%
-                  filter(ct < best_pars["intercept"]) %>%
-                  mutate(density=density/max(density)) ,aes(x=ct+0.5,y=density),col="green") +
+    ## Quantiles on expectations
+    summarize(lower_expec=quantile(expectation,0.025),
+              median_expec=quantile(expectation,0.5),
+              upper_expec=quantile(expectation,0.975))
+
+  ## Quantiles on observations
+  summary_obs <- summary_posterior_dat %>%
+    group_by(ct, t) %>%
+    summarize(lower_obs=quantile(sim_obs,0.025),
+              median_obs=quantile(sim_obs,0.5),
+              upper_obs=quantile(sim_obs,0.975))
+
+
+  p1 <- ggplot(obs_dat1) +
+    geom_histogram(aes(x=ct,y=..count..),binwidth=1,fill="grey70",col="grey20",boundary=0) +
+    geom_ribbon(data=summary_obs,aes(x=ct+0.5,ymin=lower_obs,ymax=upper_obs),fill="blue",alpha=0.25)+
+    geom_ribbon(data=summary_expectation,aes(x=ct+0.5,ymin=lower_expec,ymax=upper_expec),fill="blue",alpha=0.5)+
+    geom_line(data=summary_expectation,aes(x=ct+0.5,y=median_expec),col="blue") +
+    #geom_line(data=best_dat%>%group_by(t) %>%filter(ct < best_pars["intercept"]), aes(x=ct+0.5,y=density),col="green") +
     scale_x_continuous(trans="reverse",expand=c(0,0),limits=c(41,5),breaks=seq(0,40,by=5)) +
-    scale_y_continuous(expand=c(0,0),breaks=seq(0,1,by=0.5),limits=c(0,1.01)) +
+    #scale_y_continuous(expand=c(0,0),limits=c(0,10),breaks=seq(0,10,by=2)) +
     coord_cartesian(xlim=c(0,39)) +
     coord_flip() +
     xlab("Ct value") +
-    ylab("Relative density") +
-    facet_wrap(~t,nrow=1) +
+    ylab("Count") +
+    facet_wrap(~t,nrow=1,scales="free_x") +
     theme_classic() +
     theme(panel.grid.major = element_line(color="grey80",size=0.25),
           panel.grid.minor = element_line(color="grey80",size=0.25),
@@ -121,21 +150,22 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
               median=quantile(density,0.5),
               upper=quantile(density,0.975))
 
-  p2 <-  ggplot(obs_dat %>%
+  p2 <-  ggplot(obs_dat1 %>%
                   group_by(t) %>%
                   mutate(is_detectable=ct < best_pars["intercept"]) %>%
-                  summarize(prop_detectable=sum(is_detectable)/n())) +
-    geom_point(aes(y=prop_detectable,x=0.25,col="Ground truth"),size=3,shape=18) +
+                  summarize(prop_detectable=sum(is_detectable)/n()))
+  if(!pos_only){
+  p2 <- p2 +
+    geom_point(aes(y=prop_detectable,x=0.25,col="Data"),size=3,shape=18)
+  }
+  p2 <- p2 +
     geom_point(data=summary_prop_detectable,aes(x=0.75,y=median,col="Posterior median & 95% CI"),size=1) +
     geom_errorbar(data=summary_prop_detectable,aes(x=0.75,ymin=lower,ymax=upper),
                   width=0.1, col="blue") +
-    geom_point(data=best_dat %>%
-                 filter(ct==best_pars["intercept"]) %>%
-                 mutate(density = 1-density),
-               aes(x=0.5,y=density,col="MAP"),size=1) +
+    #geom_point(data=best_dat %>%filter(ct==best_pars["intercept"]) %>%mutate(density = 1-density),aes(x=0.5,y=density,col="MAP"),size=1) +
     scale_y_continuous() +
     scale_x_continuous(limits=c(0,1)) +
-    scale_color_manual(values=c("Ground truth"="grey40",
+    scale_color_manual(values=c("Data"="grey40",
                                 "Posterior median & 95% CI"="blue",
                                 "MAP"="green")) +
     guides(color=guide_legend(title=NULL)) +
@@ -149,7 +179,7 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
           panel.grid.major.x = element_blank(),
           panel.spacing = unit(0.5, "lines"),
           axis.text.x=element_blank(),
-          legend.position="bottom",
+          legend.position="none",
           axis.ticks.x=element_blank()) +
     ggtitle("Fit to proportion detectable")
     p1  /p2
