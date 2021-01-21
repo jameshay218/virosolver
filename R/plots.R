@@ -150,7 +150,7 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100,pos_onl
               median=quantile(density,0.5),
               upper=quantile(density,0.975))
 
-  p2 <-  ggplot(obs_dat1 %>%
+  p2 <-  ggplot(obs_dat %>%
                   group_by(t) %>%
                   mutate(is_detectable=ct < best_pars["intercept"]) %>%
                   summarize(prop_detectable=sum(is_detectable)/n()))
@@ -163,7 +163,7 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100,pos_onl
     geom_errorbar(data=summary_prop_detectable,aes(x=0.75,ymin=lower,ymax=upper),
                   width=0.1, col="blue") +
     #geom_point(data=best_dat %>%filter(ct==best_pars["intercept"]) %>%mutate(density = 1-density),aes(x=0.5,y=density,col="MAP"),size=1) +
-    scale_y_continuous() +
+    scale_y_continuous(limits=c(0,1)) +
     scale_x_continuous(limits=c(0,1)) +
     scale_color_manual(values=c("Data"="grey40",
                                 "Posterior median & 95% CI"="blue",
