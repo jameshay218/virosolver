@@ -4,7 +4,7 @@
 \alias{p_a}
 \title{Function to give probability of observing x given age a and the viral kinetics curve}
 \usage{
-p_a(x, a, pars, viral_loads)
+p_a(x, a, pars, viral_loads, sd_mod)
 }
 \description{
 Function to give probability of observing x given age a and the viral kinetics curve

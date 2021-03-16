@@ -43,7 +43,6 @@ detectable_SEEIRRModel <- function(pars, times){
   pmax(0, detectable_prev)
 }
 
-
 #' @export
 SEEIRRModel <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
@@ -132,4 +131,17 @@ solveSEEIRRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
   pars <- pars[c("beta","sigma","alpha","gamma","omega")]
   rlsoda::rlsoda(init, ts, C_SEEIRR_model_rlsoda, parms=pars, dllname="virosolver",
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
+}
+
+#' @export
+detectable_SEIRModel <- function(pars, times){
+  seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
+  init <- c(1-pars["I0"],0,pars["I0"],0)
+
+  y <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
+                 deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
+
+  detectable_prev <- y[4,]
+  detectable_prev <- c(rep(0, pars["t0"]),detectable_prev)
+  pmax(0, detectable_prev)
 }
