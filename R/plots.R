@@ -66,7 +66,6 @@ predicted_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100){
 
 #' @export
 plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100,pos_only=TRUE){
-
   best_pars <- get_best_pars(chain)
   best_dat <- MODEL_FUNC(best_pars)
 
@@ -100,6 +99,7 @@ plot_distribution_fits <- function(chain, obs_dat,MODEL_FUNC, nsamps=100,pos_onl
   summary_posterior_dat <- posterior_dat %>%
     filter(ct < best_pars["intercept"]) %>%
     left_join(total_density) %>%
+    filter(!is.na(n)) %>%
     group_by(t, sampno) %>%
     mutate(density=density/total_dens) %>%
     ungroup() %>%
