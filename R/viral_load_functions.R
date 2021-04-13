@@ -18,7 +18,6 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
   t_period2 <- obs_t > tshift & obs_t <= (desired_mode + tshift)
   t_period3 <- obs_t > (desired_mode + tshift) & obs_t <= (desired_mode + tshift + t_switch)
   t_period4 <- obs_t > (desired_mode + tshift + t_switch)
-
   y <- numeric(length(obs_t))
   y[t_period1] <- true_0
   y[t_period2] <- growth_rate * (obs_t[t_period2] - tshift) + true_0

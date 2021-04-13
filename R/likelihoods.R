@@ -48,6 +48,44 @@ likelihood_cpp_wrapper <- function(obs_dat, ages, times,
   liks_tj
 }
 
+#' @export
+prob_detectable_curve <- function(pars, ages){
+  mean <- pars["mean"]
+  var <- pars["var"]
+
+  scale <- var/mean
+  shape <- mean/scale
+
+  probs <- dgamma(ages,shape=shape,scale=scale)*pars["c"]
+  probs[probs > 1] <- 1
+
+  return(probs)
+
+}
+
+#' Likelihood for using proportion detectable only
+#'
+#' @export
+likelihood_detectable <- function(obs_dat, ages, pars, prob_infection){
+  liks <- 0
+  ## For each sampling times, calculate likelihood for Ct values measured at that time
+  for(i in 1:nrow(obs_dat)){
+    ## Only solve back until the earliest possible infection time
+    obs_time <- obs_dat$t[i]
+    ages1 <- ages[(obs_time - ages) > 0]
+    n_pos <- obs_dat$pos[i]
+    n_neg <- obs_dat$neg[i]
+    sum_detect_inf <- sum(vapply(ages1,
+                                 FUN=function(a) prob_infection[obs_time-a]*prob_detectable_curve(pars, a),
+                                 FUN.VALUE=numeric(1)))
+    liks_detect <- n_pos*log(sum_detect_inf)
+    liks_undetect <- n_neg*log(1-sum_detect_inf)
+    liks <- liks +  liks_detect+liks_undetect
+
+  }
+  liks
+}
+
 
 #' Function to give probability of observing x given age a and the viral kinetics curve
 #' @export

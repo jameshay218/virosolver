@@ -101,7 +101,8 @@ reverse_gp_model <- function(desired_probs, pars, times){
   rho <- pars["rho"]
   K <- nu^2 * exp(-rho^2 * t_dist^2)
   diag(K) <- diag(K) + 0.01
-  L_K <- chol(K)
+  L_K <- t(chol(K))
+
 
   ps <- sum(desired_probs)*desired_probs + 0.000000001
   k1 <- -log((1/ps) -1)

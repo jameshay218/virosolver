@@ -126,3 +126,35 @@ create_post_func_seeirr_combined <- function(parTab, data, ts, INCIDENCE_FUNC=de
   }
   f
 }
+
+
+#' @export
+create_posterior_func_detectable <- function(parTab,
+                                  data,
+                                  PRIOR_FUNC=NULL,
+                                  INCIDENCE_FUNC=NULL,
+                                  solve_likelihood=TRUE,
+                                  ...) {
+  par_names <- parTab$names
+  pars <- parTab$values
+  names(pars) <- par_names
+  times <- 0:max(data$t)
+  ages <- 1:max(data$t)
+  obs_times <- unique(data$t)
+
+  f <- function(pars){
+    names(pars) <- par_names
+    prob_infection_tmp <- INCIDENCE_FUNC(pars, times)
+    lik <- 0
+    if(solve_likelihood){
+      lik <- sum(likelihood_detectable(data, ages, pars, prob_infection_tmp))
+    }
+
+    if(!is.null(PRIOR_FUNC)){
+      prior <- PRIOR_FUNC(pars, ...)
+      lik <- lik+prior
+    }
+    return(lik)
+  }
+  f
+}
