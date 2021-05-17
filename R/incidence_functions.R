@@ -105,6 +105,7 @@ reverse_gp_model <- function(desired_probs, pars, times){
 
 
   ps <- sum(desired_probs)*desired_probs + 0.000000001
+  ps <- pars["overall_prob"]*ps/sum(ps)
   k1 <- -log((1/ps) -1)
 
   k_solve <- (k1 %*% solve(t(L_K)))[1,]
