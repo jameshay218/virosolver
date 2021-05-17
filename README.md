@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/301812162.svg)](https://zenodo.org/badge/latestdoi/301812162)
+
 # A method to infer epidemic dynamics using viral load data: virosolver
 ------------
 Documentation for this package is a work in progress, but all code is working correctly. This particular version accompanies the git repository at https://github.com/jameshay218/virosolver_paper, where use cases and instructions are provided.
