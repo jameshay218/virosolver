@@ -57,3 +57,32 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection){
   comb_dat
 
 }
+
+
+#' @export
+simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
+  t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
+  sd_mod <- rep(kinetics_pars["sd_mod"], max(ages))
+  unmod_vec <- 1:min(t_switch,max(ages))
+  sd_mod[unmod_vec] <- 1
+  decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
+  sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
+  
+  sim_dat <- matrix(ncol=N,nrow=length(ages))
+  for(age in ages){
+    ## For each value we're going to simulate, pre-determine if it will still be detectable or not
+    detectable_statuses <- rnbinom(N, 1, prob=kinetics_pars["prob_detect"]) + 
+      kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"]
+    cts <- rep(virosolver::viral_load_func(kinetics_pars, age, FALSE, 0),N)
+    cts[detectable_statuses <= age] <- 1000
+    sd_used <- kinetics_pars["obs_sd"]*sd_mod[age]
+    ct_obs_sim <- extraDistr::rgumbel(N, cts, sd_used)
+    ct_obs_sim <- pmin(ct_obs_sim, kinetics_pars["intercept"])
+    sim_dat[age,] <- ct_obs_sim
+  }
+  sim_dat <- data.frame(sim_dat)
+  colnames(sim_dat) <- 1:N
+  sim_dat$time_since_infection <- ages
+  sim_dat <- sim_dat %>% pivot_longer(-time_since_infection) %>% rename(ct=value,age=time_since_infection,i=name)
+  return(sim_dat)
+}

@@ -110,13 +110,89 @@ across time points.
 ``` r
 data(example_ct_data)
 ## Plot only detectable Ct values
-ggplot(example_ct_data %>% filter(ct < 40)) + 
+p_ct_data <- ggplot(example_ct_data %>% filter(ct < 40)) + 
   geom_violin(aes(x=t,group=t,y=ct),scale="width",fill="grey70",draw_quantiles=c(0.025,0.5,0.975)) + 
   geom_jitter(aes(x=t,y=ct),size=0.1,width=2,height=0) + 
   scale_y_continuous(trans="reverse") +
   theme_bw() +
   ylab("Ct value") +
-  xlab("Observation time")
+  xlab("Observation time") +
+  ggtitle("Observed Ct values < 40 (the limit of detection) over time")
+p_ct_data
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+
+``` r
+p_detectable_data <- example_ct_data %>% 
+  mutate(detect=ct < 40) %>% 
+  group_by(t) %>% 
+  summarize(prev=sum(detect)/n()) %>% 
+  ggplot() + geom_point(aes(x=t,y=prev)) + 
+  theme_bw() + 
+  scale_y_continuous(limits=c(0,0.5)) + 
+  ylab("Percent detectable") +
+  ggtitle("Proportion of samples with Ct values < 40") +
+  xlab("Observation time") 
+```
+
+    ## `summarise()` ungrouping output (override with `.groups` argument)
+
+``` r
+p_detectable_data
+```
+
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+A script to generate these data can be found in the `extdata` folder,
+which is easiest to find
+[here](https://github.com/jameshay218/virosolver/tree/master/man/inst/extdata).
+
+## Ct model
+
+A key part of the model is the assumed viral kinetics curve. This
+describes the mode and variation of Ct values on each day post
+infection. This is the population-level distribution – it does not track
+individual-level viral kinetics curve, so the variation about the mode
+captures *all* variation arising from sampling variation,
+individual-level heterogeneity etc. It is *CRUCIAL* to check the
+parameters underpinning this model when applying `virosolver` to a new
+dataset, as this calibration will be entirely dependent on the
+population being tested and the PCR instrument used. We assume the
+following Ct model for this simulation:
+
+``` r
+data(example_seir_partab)
+pars <- example_seir_partab$values
+names(pars) <- example_seir_partab$names
+
+## Solve the Ct model over a range of times since infection (referred to as "ages")
+test_ages <- seq(0,50,by=1)
+
+## This gives the modal Ct value
+cts <- viral_load_func(pars, test_ages)
+
+p_ct_model <- ggplot(data.frame(ct=cts,t=test_ages)) + 
+  geom_line(aes(x=t,y=ct)) + 
+  scale_y_continuous(trans="reverse",
+                     limits=c(40,0)) +
+  theme_bw() +
+  ylab("Modal Ct value") +
+  xlab("Days since infection")
+p_ct_model
+```
+
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
+## Note that this model does not solve for t=0, as it is always assumed that no one is detectable 0 days post infection
+prop_detect <- prop_detectable(test_ages[test_ages > 0],pars, cts[test_ages > 0])
+p_ct_model_detectable <- ggplot(data.frame(p=c(0,prop_detect),t=test_ages)) + 
+  geom_line(aes(x=t,y=p)) + 
+  theme_bw() +
+  ylab("Proportion of infections still detectable") +
+  xlab("Days since infection")
+p_ct_model_detectable
+```
+
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
