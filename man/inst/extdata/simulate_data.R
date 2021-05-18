@@ -21,7 +21,7 @@ devtools::load_all("~/Documents/GitHub/virosolver")
 HOME_WD <- "~/Documents/GitHub/"
 
 ## Where to perform the simulations
-MAIN_WD <- paste0(HOME_WD,"/virosolver/scripts")
+MAIN_WD <- paste0(HOME_WD,"/virosolver/man/inst/extdata")
 setwd(MAIN_WD)
 
 ## Load functions for line list simulation

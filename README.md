@@ -50,18 +50,16 @@ compiler (Rtools on Windows, Xcode on Mac). See
 ``` r
 library(virosolver)
 library(tidyverse)
+## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
+## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
+## ✓ tibble  3.0.3     ✓ dplyr   1.0.2
+## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
+## ✓ readr   1.3.1     ✓ forcats 0.5.0
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+library(patchwork)
 ```
-
-    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
-
-    ## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-    ## ✓ tibble  3.0.3     ✓ dplyr   1.0.2
-    ## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
-    ## ✓ readr   1.3.1     ✓ forcats 0.5.0
-
-    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ## x dplyr::filter() masks stats::filter()
-    ## x dplyr::lag()    masks stats::lag()
 
 ## Rationale
 
@@ -109,6 +107,19 @@ across time points.
 
 ``` r
 data(example_ct_data)
+print(head(example_ct_data %>% filter(ct < 40)))
+## # A tibble: 6 x 2
+##       t    ct
+##   <int> <dbl>
+## 1    55  21.3
+## 2    55  30.2
+## 3    55  20.3
+## 4    55  22.7
+## 5    55  24.3
+## 6    55  26.4
+```
+
+``` r
 ## Plot only detectable Ct values
 p_ct_data <- ggplot(example_ct_data %>% filter(ct < 40)) + 
   geom_violin(aes(x=t,group=t,y=ct),scale="width",fill="grey70",draw_quantiles=c(0.025,0.5,0.975)) + 
@@ -121,7 +132,7 @@ p_ct_data <- ggplot(example_ct_data %>% filter(ct < 40)) +
 p_ct_data
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](man/figures/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
 p_detectable_data <- example_ct_data %>% 
@@ -134,18 +145,14 @@ p_detectable_data <- example_ct_data %>%
   ylab("Percent detectable") +
   ggtitle("Proportion of samples with Ct values < 40") +
   xlab("Observation time") 
-```
-
-    ## `summarise()` ungrouping output (override with `.groups` argument)
-
-``` r
+## `summarise()` ungrouping output (override with `.groups` argument)
 p_detectable_data
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](man/figures/unnamed-chunk-5-1.png)<!-- -->
 
 A script to generate these data can be found in the `extdata` folder,
-which is easiest to find
+which can be found
 [here](https://github.com/jameshay218/virosolver/tree/master/man/inst/extdata).
 
 ## Ct model
@@ -162,37 +169,193 @@ population being tested and the PCR instrument used. We assume the
 following Ct model for this simulation:
 
 ``` r
-data(example_seir_partab)
-pars <- example_seir_partab$values
-names(pars) <- example_seir_partab$names
+data(example_gp_partab)
+pars <- example_gp_partab$values
+names(pars) <- example_gp_partab$names
 
 ## Solve the Ct model over a range of times since infection (referred to as "ages")
-test_ages <- seq(0,50,by=1)
+test_ages <- seq(1,50,by=1)
 
 ## This gives the modal Ct value
 cts <- viral_load_func(pars, test_ages)
 
-p_ct_model <- ggplot(data.frame(ct=cts,t=test_ages)) + 
+p_ct_model <- ggplot(data.frame(ct=c(40,cts),t=c(0,test_ages))) + 
   geom_line(aes(x=t,y=ct)) + 
   scale_y_continuous(trans="reverse",
-                     limits=c(40,0)) +
+                     limits=c(40,10)) +
   theme_bw() +
   ylab("Modal Ct value") +
   xlab("Days since infection")
-p_ct_model
-```
 
-![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
-
-``` r
-## Note that this model does not solve for t=0, as it is always assumed that no one is detectable 0 days post infection
-prop_detect <- prop_detectable(test_ages[test_ages > 0],pars, cts[test_ages > 0])
-p_ct_model_detectable <- ggplot(data.frame(p=c(0,prop_detect),t=test_ages)) + 
+## Note that this model does not solve for t=0, 
+## as it is always assumed that no one is detectable 0 days post infection
+prop_detect <- prop_detectable(test_ages,pars, cts)
+p_ct_model_detectable <- ggplot(data.frame(p=c(0,prop_detect),t=c(0,test_ages))) + 
   geom_line(aes(x=t,y=p)) + 
   theme_bw() +
   ylab("Proportion of infections still detectable") +
   xlab("Days since infection")
-p_ct_model_detectable
+p_ct_model/p_ct_model_detectable
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](man/figures/unnamed-chunk-6-1.png)<!-- -->
+
+An intuitive way to look at this curve is to simulate observations from
+it and plot the simulated Ct values ordered by days since infection.
+From this, we can see the substantial amount of variation in
+measurements on each day post infection, but also that there is still
+some information in the Ct values. Note also that under this model,
+individuals become truly undetectable (ie. fully recovered) under some
+daily Bernoulli process. Those who remain detectable for a long time
+demonstrate a “narrowing” of observed Ct values, where the variation
+about the mode decreases. This model captures the observation that few
+individuals remain detectable for a long time, but for those who do,
+they do not necessarily have Ct values that tend towards the limit of
+detection.
+
+``` r
+sim_cts <- simulate_viral_loads_example(test_ages, pars,N=200)
+print(head(sim_cts))
+## # A tibble: 6 x 3
+##     age i        ct
+##   <dbl> <chr> <dbl>
+## 1     1 1      31.3
+## 2     1 2      36.4
+## 3     1 3      40  
+## 4     1 4      40  
+## 5     1 5      40  
+## 6     1 6      34.7
+p_sim_cts_age <- ggplot(sim_cts %>% filter(ct < 40)) +
+  geom_point(aes(x=age,y=ct),alpha=0.25) +
+  scale_y_continuous(trans="reverse",limits=c(40,10)) +
+  theme_bw() +
+  ylab("Ct value") +
+  xlab("Days since infection") +
+  ggtitle("Simulated detectable Ct values on each day post infection")
+p_sim_cts_age
+```
+
+![](man/figures/unnamed-chunk-7-1.png)<!-- -->
+
+## Inference procedure
+
+Now that we have our Ct data and understand the assumed viral kinetics
+underpinning the model, we can get into the inference framework. We use
+a Markov chain Monte Carlo framework to estimate the posterior
+distributions of the free model parameters, conditional on the observed
+Ct data (the likelihood) and any priors we wish to place on the Ct model
+and incidence curve parameters. We’ll step through the general
+principles of using the MCMC package, `lazymcmc`, define priors for key
+model parameters, and then demonstrate how the model works using either
+a single cross section of data or multiple cross sections.
+
+### Parameter control table
+
+`lazymcmc` uses a data frame (usually called `parTab`) to track model
+parameters. The table allows users to fix/estimate certain parameters
+and also to specific upper and lower bounds. See `?example_gp_partab`
+for a bit more documentation, and refer to the the
+[`lazymcmc`](https://github.com/jameshay218/lazymcmc) vignettes for more
+detail.
+
+``` r
+data(example_gp_partab)
+head(example_gp_partab)
+##       values        names fixed lower_bound upper_bound steps lower_start
+## 1  0.5000000 overall_prob     0           0           1   0.1         0.0
+## 2  0.0000000       tshift     1           0           3   0.1         0.0
+## 3  5.0000000 desired_mode     1           0           7   0.1         0.0
+## 4 19.7359875   viral_peak     0           0          40   0.1        15.0
+## 5  5.0000000       obs_sd     0           0          25   0.1         1.0
+## 6  0.7888288       sd_mod     1           0           1   0.1         0.4
+##   upper_start
+## 1         1.0
+## 2        10.0
+## 3        10.0
+## 4        25.0
+## 5        10.0
+## 6         0.6
+## Illustration -- set the `viral_peak` parameter to be estimated during the procedure, and the `intercept` parameter to be fixed
+example_gp_partab <- example_gp_partab %>% filter(names == "viral_peak") %>% mutate(fixed=0)
+example_gp_partab <- example_gp_partab %>% filter(names == "intercept") %>% mutate(fixed=1)
+```
+
+### Priors
+
+We need to specify priors on all estimated model parameters. We use
+informative priors for the Ct model, as we need to constrain its shape
+somewhat to ensure identifiability of the incidence curve. We can use
+less informative priors for the epidemic model, as that’s what we’re
+most interested in estimating. Here, we use the example parameter table
+to find the prior *means* for each model parameter, and then we set the
+prior *standard deviations*. We then define a function to be used later,
+which takes a vector of parameters (with names corresponding to entries
+in the parameter table), which returns a single log prior probability.
+
+``` r
+## Read in the SEIR model parameter control table
+data(example_seir_partab)
+## Pull out the current values for each parameter, and set these as the prior means
+means <- example_seir_partab$values
+names(means) <- example_seir_partab$names
+## Set standard deviations of prior distribution
+sds_seir <- c("R0"=0.6,"obs_sd"=0.5,"viral_peak"=2,
+         "wane_rate2"=1,"t_switch"=3,"level_switch"=1,
+         "prob_detect"=0.03,
+         "incubation"=0.25, "infectious"=0.5)
+
+## Define a function that returns the log prior probability for a given vector of parameter
+## values in `pars`, given the prior means and standard deviations set above.
+prior_func_seir <- function(pars,...){
+  ## Ct model priors
+  obs_sd_prior <- dnorm(pars["obs_sd"], means[which(names(means) == "obs_sd")], sds_seir["obs_sd"],log=TRUE)
+  r0_prior <- dlnorm(pars["R0"],log(2),sds_seir["R0"],log=TRUE)
+  viral_peak_prior <- dnorm(pars["viral_peak"], means[which(names(means) == "viral_peak")], sds_seir["viral_peak"],log=TRUE)
+  wane_2_prior <- dnorm(pars["wane_rate2"],means[which(names(means) == "wane_rate2")],sds_seir["wane_rate2"],log=TRUE)
+  tswitch_prior <- dnorm(pars["t_switch"],means[which(names(means) == "t_switch")],sds_seir["t_switch"],log=TRUE)
+  level_prior <- dnorm(pars["level_switch"],means[which(names(means) == "level_switch")],sds_seir["level_switch"],log=TRUE)
+  ## Beta prior on the prob_detect parameter to ensure between 0 and 1
+  beta1_mean <- means[which(names(means) == "prob_detect")]
+  beta1_sd <- sds_seir["prob_detect"]
+  beta_alpha <- ((1-beta1_mean)/beta1_sd^2 - 1/beta1_mean)*beta1_mean^2
+  beta_beta <- beta_alpha*(1/beta1_mean - 1)
+  beta_prior <- dbeta(pars["prob_detect"],beta_alpha,beta_beta,log=TRUE)
+  
+  ## SEIR model priors
+  incu_prior <- dlnorm(pars["incubation"],log(means[which(names(means) == "incubation")]), sds_seir["incubation"], TRUE)
+  infectious_prior <- dlnorm(pars["infectious"],log(means[which(names(means) == "infectious")]),sds_seir["infectious"],TRUE)
+  
+  ## Sum up
+  obs_sd_prior + viral_peak_prior + 
+    wane_2_prior + tswitch_prior + level_prior + beta_prior +
+    incu_prior + infectious_prior + r0_prior
+}
+```
+
+### Likelihood and posterior function
+
+We need a function to give likelihood of observing a particular set of
+Ct values conditional on the underlying model parameters. Part of this
+is to determine the function for the probability of infection over time
+(the incidence curve). `virosolver` has some prebuilt functions for
+this, and here we’ll be using the SEIR model to describe incidence. We
+can then use the `create_posterior_func` function to create a new
+function which calculates the posterior probability of a set of
+parameter values conditional on the Ct data. This function expects a
+vector of model parameters with names corresponding to the parameter
+control table and returns a single log posterior probability. Note that
+the parameter vector needs entries for each parameter needed to solve
+both the Ct model and the incidence model.
+
+``` r
+incidence_function <- solveSEIRModel_rlsoda_wrapper
+data(example_seir_partab)
+posterior_func <- create_posterior_func(parTab=example_seir_partab,
+                                        data=example_ct_data,
+                                        PRIOR_FUNC = prior_func_seir,
+                                        INCIDENCE_FUNC = incidence_function,
+                                        use_pos=FALSE)
+posterior_func(example_seir_partab$values)
+##    obs_sd 
+## -12992.16
+```
