@@ -29,6 +29,7 @@ entries for the viral kinetics/Ct model (peak Ct value, waning duration, time to
 \seealso{
 Other example_data: 
 \code{\link{example_ct_data}},
+\code{\link{example_seir_incidence}},
 \code{\link{example_seir_partab}}
 }
 \concept{example_data}

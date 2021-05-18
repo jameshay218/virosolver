@@ -7,7 +7,7 @@
 \format{
 A data frame with 15984 rows and 2 variables:
 \describe{
-\item{t}{time in days that the sample was taken, relative to the start time of the simulation (simulation start time on t=0)}
+\item{t}{Time in days that the sample was taken, relative to the start time of the simulation (simulation start time on t=0)}
 \item{ct}{Ct value of the sample}
 }
 }
@@ -20,6 +20,7 @@ Observed Ct values simulated from an SEIR model, with 2000 individuals sampled a
 \seealso{
 Other example_data: 
 \code{\link{example_gp_partab}},
+\code{\link{example_seir_incidence}},
 \code{\link{example_seir_partab}}
 }
 \concept{example_data}
