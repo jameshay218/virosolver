@@ -3,14 +3,14 @@
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 
-## \# A method to infer epidemic dynamics using viral load data: virosolver
+## \#A method to infer epidemic dynamics using viral load data: virosolver
 
 Documentation for this package is a work in progress, but all code is
 working correctly. This particular version accompanies the git
 repository at <https://github.com/jameshay218/virosolver_paper>, where
 use cases and instructions are provided.
 
-## \#\# Setup
+## \#Setup
 
 This package uses the `lazymcmc` R package, which is used for the MCMC
 procedure. This is easy to do with

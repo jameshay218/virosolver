@@ -2,9 +2,7 @@
 output: github_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 [![DOI](https://zenodo.org/badge/301812162.svg)](https://zenodo.org/badge/latestdoi/301812162)
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing) 
@@ -20,7 +18,8 @@ This package uses the `lazymcmc` R package, which is used for the MCMC procedure
   - Clone the `parallel_tempering` branch from [here](https://github.com/jameshay218/lazymcmc/tree/parallel_tempering). Whenever this version is needed, then `devtools::load_all("PATH TO LAZYMCMC PARALLEL TEMPERING REPO")` is called instead.
   
 A number of generic R packages are also used throughout:
-```{r,eval=FALSE}
+
+```r
 c("tidyverse","ggthemes","ggpubr","ggsci","data.table","patchwork",
 "fitdistrplus","deSolve","lazymcmc","odin","doParallel","coda")
 ```
