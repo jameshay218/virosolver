@@ -734,7 +734,8 @@ predictions <- plot_prob_infection(chain_comb,
                                    INCIDENCE_FUNC=incidence_function,
                                   solve_times=0:max(example_ct_data$t),
                                    obs_dat=example_ct_data,
-                                  true_prob_infection=example_seir_incidence)
+                                  true_prob_infection=example_seir_incidence,
+                                  smooth=TRUE) ## Smooth the trajectories a bit
 p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
 p_incidence_prediction
 ## Warning: Removed 300 row(s) containing missing values (geom_path).

@@ -14,7 +14,7 @@ plot_prob_infection <- function(chain,
     tmp_pars <- lazymcmc::get_index_pars(chain, samp)
     prob_infection_tmp <- INCIDENCE_FUNC(tmp_pars, solve_times)
     if(smooth){
-      prob_infection_tmp <- pmax(smooth.spline(prob_infection_tmp)$y,0.0000001)
+      prob_infection_tmp <- pmax(smooth.spline(prob_infection_tmp,spar=0.3)$y,0.0000001)
     }
     all_res[[i]] <- tibble(t=solve_times+tshift,prob_infection=prob_infection_tmp,sampno=i)
   }
