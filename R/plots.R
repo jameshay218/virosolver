@@ -5,18 +5,25 @@ plot_prob_infection <- function(chain,
                                 solve_times,
                                 obs_dat=NULL,
                                 true_prob_infection=NULL,
-                                tshift=0){
+                                tshift=0,
+                                smooth=FALSE){
   samps <- sample(unique(chain$sampno),nsamps)
   all_res <- NULL
   for(i in seq_along(samps)){
     samp <- samps[i]
     tmp_pars <- lazymcmc::get_index_pars(chain, samp)
     prob_infection_tmp <- INCIDENCE_FUNC(tmp_pars, solve_times)
+    if(smooth){
+      prob_infection_tmp <- pmax(smooth.spline(prob_infection_tmp)$y,0.0000001)
+    }
     all_res[[i]] <- tibble(t=solve_times+tshift,prob_infection=prob_infection_tmp,sampno=i)
   }
   posterior_dat <- do.call("bind_rows",all_res)
   best_pars <- get_best_pars(chain)
   best_prob_infection <- INCIDENCE_FUNC(best_pars, solve_times)
+  if(smooth){
+    best_prob_infection <- pmax(smooth.spline(best_prob_infection)$y,0.0000001)
+  }
   best_prob_dat <- tibble(t=solve_times+tshift,prob_infection=best_prob_infection,sampno="MAP")
 
   p1 <- ggplot(posterior_dat) +

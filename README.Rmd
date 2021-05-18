@@ -3,8 +3,8 @@ output: github_document
 ---
 
 ```{r setup, echo=FALSE}
-knitr::opts_chunk$set(eval = TRUE,collapse=TRUE,
-  fig.path = "man/figures/")
+knitr::opts_chunk$set(eval=TRUE,collapse=TRUE,
+  fig.path="man/figures/")
 ```
 
 [![DOI](https://zenodo.org/badge/301812162.svg)](https://zenodo.org/badge/latestdoi/301812162)
@@ -39,6 +39,7 @@ library(virosolver)
 library(tidyverse)
 library(patchwork)
 library(lazymcmc)
+set.seed(1)
 ```
 ## 1. Rationale
 `virosolver` takes an input data frame of cycle threshold (Ct) values with associated sample collection dates from quantitative reverse transcription PCR (RT-qPCR) testing, and reconstructs the incidence curve that gave rise to those measurements. The logic is as follows: 
@@ -205,8 +206,8 @@ data(example_seir_partab)
 ## Create the posterior function used in the MCMC framework
 posterior_func <- create_posterior_func(parTab=example_seir_partab,
                                         data=example_ct_data,
-                                        PRIOR_FUNC = prior_func_seir,
-                                        INCIDENCE_FUNC = incidence_function,
+                                        PRIOR_FUNC=prior_func_seir,
+                                        INCIDENCE_FUNC=incidence_function,
                                         use_pos=FALSE) ## Important argument, see text
 
 ## Test with default parameters to find the log likelihood
@@ -237,12 +238,12 @@ Depending on the MCMC settings we wish to use (see the `lazymcmc` documentation)
 covMat <- diag(nrow(start_tab))
 mvrPars <- list(covMat,2.38/sqrt(nrow(start_tab[start_tab$fixed==0,])),w=0.8)
 mcmc_pars <- c("iterations"=100000,"popt"=0.234,"opt_freq"=1000,
-                    "thin"=100,"adaptive_period"=50000,"save_block"=1000)
+                    "thin"=100,"adaptive_period"=50000,"save_block"=100)
 ```
 
 This is where the magic happens: `run_MCMC` takes in all of the objects we've set up and runs the full MCMC procedure.
 ```{r,echo=TRUE,eval=FALSE}
-dir.create("mcmc_chains/readme_single_cross_section",recursive = TRUE)
+dir.create("mcmc_chains/readme_single_cross_section",recursive=TRUE)
 
 ##################################
 ## RUN THE MCMC FRAMEWORK
@@ -252,7 +253,7 @@ for(chain_no in 1:3) {
   outputs <- run_MCMC(parTab=start_tab,
                            data=ct_data_use,
                            INCIDENCE_FUNC=incidence_function,
-                           PRIOR_FUNC = prior_func_seir,
+                           PRIOR_FUNC=prior_func_seir,
                            mcmcPars=mcmc_pars,
                            filename=paste0("mcmc_chains/readme_single_cross_section/readme_seir_",chain_no),
                            CREATE_POSTERIOR_FUNC=create_posterior_func,
@@ -261,15 +262,15 @@ for(chain_no in 1:3) {
 }
 ```
 
-After the MCMC sampling is finished, we use a function from `lazymcmc` to load in all of the MCMC chains, and we then use `ggplot2` to investigate the trace plots to check for convergence.
+After the MCMC sampling is finished, we use a function from `lazymcmc` to load in all of the MCMC chains, and we then use `ggplot2` to investigate the trace plots to check for convergence. You should check other convergence diagnostics like effective sample size and Rhat, but that is beyond the scope of this vignette.
 ```{r}
 ## Read in the MCMC chains
 chains <- load_mcmc_chains(location="mcmc_chains/readme_single_cross_section",
                            parTab=start_tab,
                            burnin=mcmc_pars["adaptive_period"],
-                           chainNo = TRUE,
+                           chainNo=TRUE,
                            unfixed=TRUE,
-                           multi = TRUE)
+                           multi=TRUE)
 ## Reshape for plotting
 chains_melted <- chains$chain %>% as_tibble %>% group_by(chain) %>% mutate(sampno=1:n()) %>% pivot_longer(-c(sampno,chain))
 ## Look at trace plots
@@ -282,6 +283,7 @@ p_trace <- ggplot(chains_melted) +
   ylab("Value")
 p_trace
 ```
+
 We also use the MCMC chains (loaded with `unfixed=FALSE` here to include all fixed parameters) to solve the model using a number of posterior draws. This allows us to construct credible intervals on the model predictions and to visualize the inferred incidence curve. We compare this to the true (blue) incidence curve to see how accurate the estimates are. We can see that the posterior draws nicely capture the blue line, demonstrating that the recovered incidence curve is close to the true value.
 
 ```{r}
@@ -290,9 +292,9 @@ We also use the MCMC chains (loaded with `unfixed=FALSE` here to include all fix
 chains <- load_mcmc_chains(location="mcmc_chains/readme_single_cross_section",
                            parTab=start_tab,
                            burnin=mcmc_pars["adaptive_period"],
-                           chainNo = FALSE,
+                           chainNo=FALSE,
                            unfixed=FALSE,
-                           multi = TRUE)
+                           multi=TRUE)
 ## Do some reshaping to allow correct subsampling (we need each sampno to correspond to one unique posterior draw)
 chain_comb <- chains$chain %>% as_tibble() %>% mutate(sampno=1:n()) %>% as.data.frame()
 
@@ -303,13 +305,13 @@ predictions <- plot_prob_infection(chain_comb,
                                    INCIDENCE_FUNC=incidence_function,
                                   solve_times=0:max(ct_data_use$t),
                                    obs_dat=ct_data_use,
-                                  true_prob_infection = example_seir_incidence)
-p_incidence_prediction <- predictions$plot
+                                  true_prob_infection=example_seir_incidence)
+p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
 p_incidence_prediction
 ```
 
 It's also a good idea to check things like the estimated daily growth rate and time-varying reproductive number. A bit more computation is involved here, but the key is to check our estimated predictions against the true values.
-```{r}
+```{r,echo=FALSE}
 ## Get smoothed growth rates
 samps <- sample(unique(chain_comb$sampno),1000)
 dat_inc <- NULL 
@@ -362,6 +364,7 @@ p_gr <- ggplot(trajs1_quants) +
   coord_cartesian(ylim=c(-0.5,0.5)) +
   scale_color_manual(name="",values=c("Posterior median"="black","True value"="blue","Sample time"="red")) +
   scale_fill_manual(name="",values=c("95% CrI"="gray40")) +
+  scale_x_continuous(limits=c(0,150)) +
   ylab("Estimated growth rate") +
   xlab("Time") +
   theme_bw()
@@ -380,9 +383,11 @@ p_rt <- ggplot(Rt_quants) +
   geom_vline(data=tibble(x=unique(ct_data_use$t)),aes(col="Sample time",xintercept=x),linetype="dashed") +
   scale_color_manual(name="",values=c("Posterior median"="black","True value"="blue","Sample time"="red")) +
   scale_fill_manual(name="",values=c("95% CrI"="gray40")) +
+  scale_x_continuous(limits=c(0,150)) +
   ylab("Rt") +
   xlab("Time") +
   theme_bw()
+p_gr/p_rt
 
 ```
 
@@ -396,44 +401,168 @@ p_distribution_fit
 ```
 
 ### 4.5 Estimating incidence from multiple cross sections
-The final part of this case study is to use a Gaussian Process prior to estimate the full incidence curve using all cross-sections of Ct values. The overall set up is identical, but we need to use a new prior function and new parameter table corresponding to the new incidence model.
+The final part of this case study is to use a Gaussian Process prior to estimate the full incidence curve using all cross-sections of Ct values. The overall set up is identical, but we need to use a new incidence function, new prior function and new parameter table corresponding to the new incidence model.
+
+Note that we set the `incidence_function` pointer to `gaussian_process_model` here, and load in the GP parameter table. We also need to reduce the size of `par_tab` so that we only solve the model in the range of times given by the data. That is, we only want to find incidence for each day in the vector between t=0 and the final sampling time -- we don't do any forecasting here. We need one entry of `prob` for each time we're solving the model for.
 
 ```{r}
+## MCMC chain options
+mcmc_pars <- c("iterations"=200000,"popt"=0.44,"opt_freq"=2000,
+                    "thin"=100,"adaptive_period"=100000,"save_block"=100)
+
+## Set pointer to the Gaussian Process model as the incidence function
+incidence_function <- gaussian_process_model
 ## Read in the GP model parameter control table
 data(example_gp_partab)
+
+## This is for the GP version
+times <- 0:max(example_ct_data$t)
+mat <- matrix(rep(times, each=length(times)),ncol=length(times))
+t_dist <- abs(apply(mat, 2, function(x) x-times))
+par_tab <- example_gp_partab
+par_tab <- bind_rows(par_tab[par_tab$names != "prob",], par_tab[par_tab$names == "prob",][1:length(times),])
+pars <- par_tab$values
+names(pars) <- par_tab$names
+
 ## Pull out the current values for each parameter, and set these as the prior means
-means <- example_seir_partab$values
-names(means) <- example_seir_partab$names
+means <- par_tab$values
+names(means) <- par_tab$names
+
 ## Set standard deviations of prior distribution
-sds_seir <- c("R0"=0.6,"obs_sd"=0.5,"viral_peak"=2,
+sds_gp <- c("obs_sd"=0.5,"viral_peak"=2,
          "wane_rate2"=1,"t_switch"=3,"level_switch"=1,
          "prob_detect"=0.03,
          "incubation"=0.25, "infectious"=0.5)
 
 ## Define a function that returns the log prior probability for a given vector of parameter
 ## values in `pars`, given the prior means and standard deviations set above.
-prior_func_seir <- function(pars,...){
-  ## Ct model priors
-  obs_sd_prior <- dnorm(pars["obs_sd"], means[which(names(means) == "obs_sd")], sds_seir["obs_sd"],log=TRUE)
-  #r0_prior <- dlnorm(pars["R0"],log(2),sds_seir["R0"],log=TRUE)
-  viral_peak_prior <- dnorm(pars["viral_peak"], means[which(names(means) == "viral_peak")], sds_seir["viral_peak"],log=TRUE)
-  wane_2_prior <- dnorm(pars["wane_rate2"],means[which(names(means) == "wane_rate2")],sds_seir["wane_rate2"],log=TRUE)
-  tswitch_prior <- dnorm(pars["t_switch"],means[which(names(means) == "t_switch")],sds_seir["t_switch"],log=TRUE)
-  level_prior <- dnorm(pars["level_switch"],means[which(names(means) == "level_switch")],sds_seir["level_switch"],log=TRUE)
-  ## Beta prior on the prob_detect parameter to ensure between 0 and 1
+## Prior for GP version
+prior_func_gp <- function(pars, ...){
+  par_names <- names(pars)
+  
+  ## Viral kinetics parameters
+  obs_sd_prior <- dnorm(pars["obs_sd"], means[which(names(means) == "obs_sd")], sds_gp["obs_sd"],log=TRUE)
+  viral_peak_prior <- dnorm(pars["viral_peak"], means[which(names(means) == "viral_peak")], sds_gp["viral_peak"],log=TRUE)
+  wane_2_prior <- dnorm(pars["wane_rate2"],means[which(names(means) == "wane_rate2")],sds_gp["wane_rate2"],log=TRUE)
+  tswitch_prior <- dnorm(pars["t_switch"],means[which(names(means) == "t_switch")],sds_gp["t_switch"],log=TRUE)
+  level_prior <- dnorm(pars["level_switch"],means[which(names(means) == "level_switch")],sds_gp["level_switch"],log=TRUE)
   beta1_mean <- means[which(names(means) == "prob_detect")]
-  beta1_sd <- sds_seir["prob_detect"]
+  beta1_sd <- sds_gp["prob_detect"]
   beta_alpha <- ((1-beta1_mean)/beta1_sd^2 - 1/beta1_mean)*beta1_mean^2
   beta_beta <- beta_alpha*(1/beta1_mean - 1)
   beta_prior <- dbeta(pars["prob_detect"],beta_alpha,beta_beta,log=TRUE)
   
-  ## SEIR model priors
-  incu_prior <- dlnorm(pars["incubation"],log(means[which(names(means) == "incubation")]), sds_seir["incubation"], TRUE)
-  infectious_prior <- dlnorm(pars["infectious"],log(means[which(names(means) == "infectious")]),sds_seir["infectious"],TRUE)
+  ### VERY IMPORTANT
+  ## Gaussian process prior, un-centered version
+  k <- pars[which(par_names=="prob")]
+  ## Leave this - correct for uncentered version as per Chapter 14 Statistical Rethinking
+  prob_priors <- sum(dnorm(k, 0, 1, log=TRUE))
+  #########
   
-  ## Sum up
-  obs_sd_prior + viral_peak_prior + 
-    wane_2_prior + tswitch_prior + level_prior + beta_prior +
-    incu_prior + infectious_prior #+ r0_prior
+  nu_prior <- dexp(pars["nu"], 1/means[which(names(means) == "nu")],log=TRUE)
+  rho_prior <- dexp(pars["rho"], 1/means[which(names(means) == "rho")],log=TRUE)
+  
+  obs_sd_prior + viral_peak_prior + wane_2_prior + tswitch_prior +
+    level_prior + beta_prior + prob_priors +
+    nu_prior + rho_prior
 }
+```
+
+```{r}
+## Check that posterior function solves and returns a finite likelihood
+posterior_function <- create_posterior_func(parTab=par_tab, 
+                                            data=example_ct_data, 
+                                            PRIOR_FUNC=prior_func_gp, 
+                                            INCIDENCE_FUNC=incidence_function,
+                                            t_dist=t_dist)
+posterior_function(par_tab$values)
+```
+
+We're now ready to solve the full Gaussian Process prior model. This is going to take quite a lot longer than the single cross section SEIR model, as there is far more data and the model solve time is longer. This may take a couple hours to run sufficiently long chains.
+```{r,eval=FALSE}
+dir.create("mcmc_chains/readme_multiple_cross_section",recursive=TRUE)
+##################################
+## RUN THE MCMC FRAMEWORK
+## Run 3 MCMC chains. Note that it is possible to parallelize this loop with foreach and doPar
+## Note the `use_pos` argument needs to be set here too
+for(chain_no in 1:3){
+  ## Get random starting values
+  start_tab <- generate_viable_start_pars(par_tab,example_ct_data,
+                                         create_posterior_func,
+                                         incidence_function,
+                                         prior_func_gp)
+  
+  output <- run_MCMC(parTab=start_tab,
+                     data=example_ct_data,
+                     INCIDENCE_FUNC=incidence_function,
+                     PRIOR_FUNC=prior_func_gp,
+                     mcmcPars=mcmc_pars,
+                     filename=paste0("mcmc_chains/readme_multiple_cross_section/readme_gp_",chain_no),
+                     CREATE_POSTERIOR_FUNC=create_posterior_func,
+                     mvrPars=NULL,
+                     OPT_TUNING=0.2,
+                     use_pos=FALSE,
+                     t_dist=t_dist)
+}
+```
+
+The remaining steps are the same as the single cross section example. We read in the MCMC chains, check for convergence, and then use the posterior draws to check our estimates.
+```{r}
+mcmc_pars["adaptive_period"] <- 20000
+## Read in the MCMC chains
+chains <- load_mcmc_chains(location="mcmc_chains/readme_multiple_cross_section",
+                           parTab=par_tab,
+                           burnin=mcmc_pars["adaptive_period"],
+                           chainNo=TRUE,
+                           unfixed=TRUE,
+                           multi=FALSE)
+## Reshape for plotting
+chains_melted <- chains$chain %>% as_tibble %>% group_by(chain) %>% mutate(sampno=1:n()) %>% pivot_longer(-c(sampno,chain))
+## Look at trace plots
+p_trace_gp <- chains_melted %>%
+  filter(!(name %in% paste0("prob.",1:max(times)))) %>%
+  ggplot() + 
+  geom_line(aes(x=sampno,y=value,col=as.factor(chain))) + 
+  facet_wrap(~name,scales="free_y") + 
+  scale_color_viridis_d(name="Chain") + 
+  theme_bw() +
+  xlab("Iteration") +
+  ylab("Value")
+p_trace_gp
+```
+
+Plot predicted incidence curves using posterior draws and compare to the true incidence curve (blue).
+```{r}
+## Load in MCMC chains again, but this time read in the fixed parameters too 
+## to ensure that the posterior draws are compatible with the model functions
+chains <- load_mcmc_chains(location="mcmc_chains/readme_multiple_cross_section/",
+                           parTab=par_tab,
+                           burnin=mcmc_pars["adaptive_period"],
+                           chainNo=FALSE,
+                           unfixed=FALSE,
+                           multi=FALSE)
+## Do some reshaping to allow correct subsampling (we need each sampno to correspond to one unique posterior draw)
+chain_comb <- as.data.frame(chains$chain)
+chain_comb$sampno <- 1:nrow(chain_comb)
+
+## Load in true incidence curve to compare to our prediction
+data(example_seir_incidence)
+predictions <- plot_prob_infection(chain_comb, 
+                                   nsamps=100, 
+                                   INCIDENCE_FUNC=incidence_function,
+                                  solve_times=0:max(example_ct_data$t),
+                                   obs_dat=example_ct_data,
+                                  true_prob_infection=example_seir_incidence,
+                                  smooth=TRUE) ## Smooth the trajectories a bit
+p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
+p_incidence_prediction
+```
+
+Check model-predicted Ct distributions against observed data at each cross section. 
+```{r, dpi=100,fig.height=7,width=3}
+## Use create_posterior_func to return the predicted Ct distribution rather than the posterior probability
+model_func_gp <- create_posterior_func(par_tab,example_ct_data,NULL,incidence_function,"model")
+## Pass model_func to a plotting function to observe predicted Ct distribution against data
+p_distribution_fit_gp <- plot_distribution_fits(chain_comb, example_ct_data, model_func_gp,100,pos_only=FALSE)
+p_distribution_fit_gp
 ```
