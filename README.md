@@ -127,7 +127,8 @@ prior_func_gp <- function(pars, ...){
   beta_beta <- beta_alpha*(1/beta1_mean - 1)
   beta_prior <- dbeta(pars["prob_detect"],beta_alpha,beta_beta,log=TRUE)
   
-  ### VERY IMPORTANT
+  #########
+  ## IMPORTANT
   ## Gaussian process prior, un-centered version
   k <- pars[which(par_names=="prob")]
   ## Leave this - correct for uncentered version as per Chapter 14 Statistical Rethinking
