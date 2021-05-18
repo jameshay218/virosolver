@@ -45,7 +45,7 @@ Finally, this code uses compiled code with Rcpp, so you’ll need a C++
 compiler (Rtools on Windows, Xcode on Mac). See
 [here](http://adv-r.had.co.nz/Rcpp.html).
 
-# Case study vignette - simulated data
+# Vignette - simulated data
 
 ``` r
 library(virosolver)
@@ -59,14 +59,15 @@ library(tidyverse)
 ## x dplyr::filter() masks stats::filter()
 ## x dplyr::lag()    masks stats::lag()
 library(patchwork)
+library(lazymcmc)
 ```
 
-## Rationale
+## 1\. Rationale
 
-`virosolver` takes an input data frame of Ct values with associated
-sample collection dates from quantitative reverse transcription PCR
-(RT-qPCR) testing, and reconstructs the incidence curve that gave rise
-to those measurements. The logic is as follows:
+`virosolver` takes an input data frame of cycle threshold (Ct) values
+with associated sample collection dates from quantitative reverse
+transcription PCR (RT-qPCR) testing, and reconstructs the incidence
+curve that gave rise to those measurements. The logic is as follows:
 
   - There is an unobserved incidence curve that describes the generation
     of new infections over time;
@@ -84,23 +85,23 @@ to those measurements. The logic is as follows:
     then most individuals were early on in their infection course and
     incidence was likely growing.
 
-By capturing this model in a mathematical model, we can obtain a
+By capturing this logic in a mathematical model, we can obtain a
 probabilistic estimate of the underlying incidence curve having observed
 a set of Ct values at some point in time.
 
-That was a bit of a whirlwind explanation – the key idea is that you can
-estimate incidence based on cross-sections of observed Ct values. This
-case study explores the application of `virosolver` to SARS-CoV-2. A
-full explanation can be found in the accompanying
+To summarize, the key idea is that you can estimate incidence based on
+cross-sections of observed Ct values. This case study explores the
+application of `virosolver` to SARS-CoV-2 surveillance. A full
+explanation can be found in the accompanying
 [paper](https://doi.org/10.1101/2020.10.08.20204222).
 
-## Data
+## 2\. Data
 
 `virosolver` expects a data frame as input data in long format, where
 each row corresponds to one tested sample. There should be one column
-labeled as `t`, giving the time in days a sample was taken, and one
-column labeled `ct`, giving the Ct value of that tested sample. Note
-that Ct values are semi-quantitative and their scale depends on the
+labeled `t`, giving the time in days a sample was taken, and one column
+labeled `ct`, giving the Ct value of that tested sample. Note that Ct
+values are semi-quantitative and their scale depends on the
 platform/instrument used. It is assumed that all Ct values within the
 data frame are on the same scale and therefore internally consistent
 across time points.
@@ -142,7 +143,7 @@ p_detectable_data <- example_ct_data %>%
   ggplot() + geom_point(aes(x=t,y=prev)) + 
   theme_bw() + 
   scale_y_continuous(limits=c(0,0.5)) + 
-  ylab("Percent detectable") +
+  ylab("Proportion detectable") +
   ggtitle("Proportion of samples with Ct values < 40") +
   xlab("Observation time") 
 ## `summarise()` ungrouping output (override with `.groups` argument)
@@ -152,21 +153,26 @@ p_detectable_data
 ![](man/figures/unnamed-chunk-5-1.png)<!-- -->
 
 A script to generate these data can be found in the `extdata` folder,
-which can be found
+found
 [here](https://github.com/jameshay218/virosolver/tree/master/man/inst/extdata).
 
-## Ct model
+## 3\. Ct model
 
 A key part of the model is the assumed viral kinetics curve. This
 describes the mode and variation of Ct values on each day post
 infection. This is the population-level distribution – it does not track
 individual-level viral kinetics curve, so the variation about the mode
 captures *all* variation arising from sampling variation,
-individual-level heterogeneity etc. It is *CRUCIAL* to check the
+individual-level heterogeneity etc. It is *CRUCIAL* to understand the
 parameters underpinning this model when applying `virosolver` to a new
 dataset, as this calibration will be entirely dependent on the
-population being tested and the PCR instrument used. We assume the
-following Ct model for this simulation:
+population being tested and the PCR instrument used. Consider questions
+like “what are the mean and range of Ct values I expect to see if I test
+someone on my platform *x* days post infection?”, “what proportion of
+positive samples taken *x* days post infection do I expect to test
+positive?”.
+
+We assume the following Ct model for this simulation:
 
 ``` r
 data(example_gp_partab)
@@ -193,7 +199,7 @@ prop_detect <- prop_detectable(test_ages,pars, cts)
 p_ct_model_detectable <- ggplot(data.frame(p=c(0,prop_detect),t=c(0,test_ages))) + 
   geom_line(aes(x=t,y=p)) + 
   theme_bw() +
-  ylab("Proportion of infections still detectable") +
+  ylab("Proportion of infections\n still detectable") +
   xlab("Days since infection")
 p_ct_model/p_ct_model_detectable
 ```
@@ -205,13 +211,13 @@ it and plot the simulated Ct values ordered by days since infection.
 From this, we can see the substantial amount of variation in
 measurements on each day post infection, but also that there is still
 some information in the Ct values. Note also that under this model,
-individuals become truly undetectable (ie. fully recovered) under some
-daily Bernoulli process. Those who remain detectable for a long time
-demonstrate a “narrowing” of observed Ct values, where the variation
-about the mode decreases. This model captures the observation that few
-individuals remain detectable for a long time, but for those who do,
-they do not necessarily have Ct values that tend towards the limit of
-detection.
+individuals become truly undetectable (ie. fully recovered) following
+some daily Bernoulli process. Those who remain detectable for a long
+time demonstrate a “narrowing” of observed Ct values, where the
+variation about the mode decreases. This model captures the observation
+that few individuals remain detectable for a long time, but for those
+who do, they do not necessarily have Ct values that tend towards the
+limit of detection.
 
 ``` r
 sim_cts <- simulate_viral_loads_example(test_ages, pars,N=200)
@@ -219,12 +225,12 @@ print(head(sim_cts))
 ## # A tibble: 6 x 3
 ##     age i        ct
 ##   <dbl> <chr> <dbl>
-## 1     1 1      31.3
-## 2     1 2      36.4
-## 3     1 3      40  
+## 1     1 1      40  
+## 2     1 2      40  
+## 3     1 3      33.7
 ## 4     1 4      40  
 ## 5     1 5      40  
-## 6     1 6      34.7
+## 6     1 6      39.7
 p_sim_cts_age <- ggplot(sim_cts %>% filter(ct < 40)) +
   geom_point(aes(x=age,y=ct),alpha=0.25) +
   scale_y_continuous(trans="reverse",limits=c(40,10)) +
@@ -233,11 +239,12 @@ p_sim_cts_age <- ggplot(sim_cts %>% filter(ct < 40)) +
   xlab("Days since infection") +
   ggtitle("Simulated detectable Ct values on each day post infection")
 p_sim_cts_age
+## Warning: Removed 1 rows containing missing values (geom_point).
 ```
 
 ![](man/figures/unnamed-chunk-7-1.png)<!-- -->
 
-## Inference procedure
+## 4\. Inference procedure
 
 Now that we have our Ct data and understand the assumed viral kinetics
 underpinning the model, we can get into the inference framework. We use
@@ -249,12 +256,12 @@ principles of using the MCMC package, `lazymcmc`, define priors for key
 model parameters, and then demonstrate how the model works using either
 a single cross section of data or multiple cross sections.
 
-### Parameter control table
+### 4.1 Parameter control table
 
-`lazymcmc` uses a data frame (usually called `parTab`) to track model
-parameters. The table allows users to fix/estimate certain parameters
-and also to specific upper and lower bounds. See `?example_gp_partab`
-for a bit more documentation, and refer to the the
+`lazymcmc` uses a data frame (usually called `parTab` or `par_tab`) to
+track model parameters. The table allows users to fix/estimate certain
+parameters and also to specify upper and lower bounds. See
+`?example_gp_partab` for more information, and refer to the the
 [`lazymcmc`](https://github.com/jameshay218/lazymcmc) vignettes for more
 detail.
 
@@ -280,17 +287,18 @@ example_gp_partab <- example_gp_partab %>% filter(names == "viral_peak") %>% mut
 example_gp_partab <- example_gp_partab %>% filter(names == "intercept") %>% mutate(fixed=1)
 ```
 
-### Priors
+### 4.2 Priors
 
 We need to specify priors on all estimated model parameters. We use
 informative priors for the Ct model, as we need to constrain its shape
-somewhat to ensure identifiability of the incidence curve. We can use
-less informative priors for the epidemic model, as that’s what we’re
-most interested in estimating. Here, we use the example parameter table
-to find the prior *means* for each model parameter, and then we set the
-prior *standard deviations*. We then define a function to be used later,
-which takes a vector of parameters (with names corresponding to entries
-in the parameter table), which returns a single log prior probability.
+based on our knowledge of viral kinetics to ensure identifiability of
+the incidence curve. We use less informative priors for the epidemic
+model, as that’s what we’re interested in estimating. Here, we use the
+example parameter table to find the **prior means** for each model
+parameter, and then we set the prior **standard deviations**. We then
+define a function to be used later, which takes a vector of parameters
+(with names corresponding to entries in the parameter table), which
+returns a single log prior probability.
 
 ``` r
 ## Read in the SEIR model parameter control table
@@ -309,7 +317,7 @@ sds_seir <- c("R0"=0.6,"obs_sd"=0.5,"viral_peak"=2,
 prior_func_seir <- function(pars,...){
   ## Ct model priors
   obs_sd_prior <- dnorm(pars["obs_sd"], means[which(names(means) == "obs_sd")], sds_seir["obs_sd"],log=TRUE)
-  r0_prior <- dlnorm(pars["R0"],log(2),sds_seir["R0"],log=TRUE)
+  #r0_prior <- dlnorm(pars["R0"],log(2),sds_seir["R0"],log=TRUE)
   viral_peak_prior <- dnorm(pars["viral_peak"], means[which(names(means) == "viral_peak")], sds_seir["viral_peak"],log=TRUE)
   wane_2_prior <- dnorm(pars["wane_rate2"],means[which(names(means) == "wane_rate2")],sds_seir["wane_rate2"],log=TRUE)
   tswitch_prior <- dnorm(pars["t_switch"],means[which(names(means) == "t_switch")],sds_seir["t_switch"],log=TRUE)
@@ -328,34 +336,1678 @@ prior_func_seir <- function(pars,...){
   ## Sum up
   obs_sd_prior + viral_peak_prior + 
     wane_2_prior + tswitch_prior + level_prior + beta_prior +
-    incu_prior + infectious_prior + r0_prior
+    incu_prior + infectious_prior #+ r0_prior
 }
 ```
 
-### Likelihood and posterior function
+### 4.3 Likelihood and posterior function
 
-We need a function to give likelihood of observing a particular set of
-Ct values conditional on the underlying model parameters. Part of this
-is to determine the function for the probability of infection over time
-(the incidence curve). `virosolver` has some prebuilt functions for
-this, and here we’ll be using the SEIR model to describe incidence. We
-can then use the `create_posterior_func` function to create a new
-function which calculates the posterior probability of a set of
-parameter values conditional on the Ct data. This function expects a
-vector of model parameters with names corresponding to the parameter
-control table and returns a single log posterior probability. Note that
-the parameter vector needs entries for each parameter needed to solve
-both the Ct model and the incidence model.
+Next, we need a function to give the **likelihood** of observing a
+particular set of Ct values conditional on the underlying model
+parameters. Part of this is to determine the function for the
+**probability of infection over time** (the incidence curve).
+`virosolver` has some prebuilt functions for this, and here we’ll be
+using the SEIR model to describe incidence. We can then use
+`create_posterior_func` to create a new function which calculates the
+posterior probability of a set of parameter values conditional on the Ct
+data. This function expects a vector of model parameters with names
+corresponding to the parameter control table and returns a single log
+posterior probability. Note that the parameter vector needs entries for
+each parameter needed to solve both the Ct model and the incidence
+model.
 
 ``` r
+## Point to a function that expects a vector of named parameters and returns a vector of daily infection probabilities/incidence
 incidence_function <- solveSEIRModel_rlsoda_wrapper
+
+## Use the example parameter table
 data(example_seir_partab)
+
+## Create the posterior function used in the MCMC framework
 posterior_func <- create_posterior_func(parTab=example_seir_partab,
                                         data=example_ct_data,
                                         PRIOR_FUNC = prior_func_seir,
                                         INCIDENCE_FUNC = incidence_function,
                                         use_pos=FALSE)
+
+## Test with default parameters to find the log likelihood
 posterior_func(example_seir_partab$values)
 ##    obs_sd 
-## -12992.16
+## -12990.77
 ```
+
+### 4.4 Estimating incidence from a single cross section
+
+We’ll now demonstrate how to use `virosolver` to estimate an
+SEIR-generated incidence curve from a single-cross section of data.
+We’ll use Ct values from the third sampling time, and then run the
+MCMC framework. The majority of Ct values are undetectable, so we’ll
+just look at the distribution of Ct values below the limit of detection.
+
+``` r
+## Filter to Ct values on day 83 (third timepoint)
+ct_data_use <- example_ct_data %>% filter(t == 83)
+p_ct_use <- ggplot(ct_data_use %>% filter(ct < 40)) + geom_histogram(aes(x=ct)) + theme_bw()
+p_ct_use
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](man/figures/unnamed-chunk-11-1.png)<!-- -->
+
+First, we need to set random starting values for the MCMC procedure.
+
+``` r
+## Function from the vrisolver package to generate random starting parameter values that return a finite likelihood
+start_tab <- generate_viable_start_pars(example_seir_partab,ct_data_use,
+                                                      create_posterior_func,
+                                                      incidence_function,
+                                                      prior_func_seir)
+```
+
+Depending on the MCMC settings we wish to use (see the `lazymcmc`
+documentation), we need to do some additional set up. `covMat`,`mvrPars`
+and `mcmc_pars` specify needed objects for the Metropolis-Hastings
+algorithm, as well as the length of the MCMC chain.
+
+``` r
+covMat <- diag(nrow(start_tab))
+mvrPars <- list(covMat,2.38/sqrt(nrow(start_tab[start_tab$fixed==0,])),w=0.8)
+mcmc_pars <- c("iterations"=100000,"popt"=0.234,"opt_freq"=1000,
+                    "thin"=100,"adaptive_period"=50000,"save_block"=1000)
+dir.create("mcmc_chains/readme_single_cross_section",recursive = TRUE)
+## Warning in dir.create("mcmc_chains/readme_single_cross_section", recursive =
+## TRUE): 'mcmc_chains/readme_single_cross_section' already exists
+```
+
+This is where the magic happens: `run_MCMC` takes in all of the objects
+we’ve set up and runs the full MCMC procedure.
+
+    ## Pcur:    0.012
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   1000
+    ## 
+    ## Pcur:    0.004
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   2000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   3000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   4000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   5000
+    ## 
+    ## Pcur:    0.004
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   6000
+    ## 
+    ## Pcur:    0.001
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   7000
+    ## 
+    ## Pcur:    0.001
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   8000
+    ## 
+    ## Pcur:    0.004
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   9000
+    ## 
+    ## Pcur:    0.004
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   10000
+    ## 
+    ## Pcur:    0.001
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   11000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   12000
+    ## 
+    ## Pcur:    0.021
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   13000
+    ## 
+    ## Pcur:    0.017
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   14000
+    ## 
+    ## Pcur:    0.04
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   15000
+    ## 
+    ## Pcur:    0.074
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   16000
+    ## 
+    ## Pcur:    0.048
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   17000
+    ## 
+    ## Pcur:    0.057
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   18000
+    ## 
+    ## Pcur:    0.055
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   19000
+    ## 
+    ## Pcur:    0.056
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   20000
+    ## 
+    ## Pcur:    0.029
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   21000
+    ## 
+    ## Pcur:    0.025
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   22000
+    ## 
+    ## Pcur:    0.06
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   23000
+    ## 
+    ## Pcur:    0.028
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   24000
+    ## 
+    ## Pcur:    0.032
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   25000
+    ## 
+    ## Pcur:    0.035
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   26000
+    ## 
+    ## Pcur:    0.026
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   27000
+    ## 
+    ## Pcur:    0.026
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   28000
+    ## 
+    ## Pcur:    0.005
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   29000
+    ## 
+    ## Pcur:    0.019
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   30000
+    ## 
+    ## Pcur:    0.038
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   31000
+    ## 
+    ## Pcur:    0.021
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   32000
+    ## 
+    ## Pcur:    0.024
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   33000
+    ## 
+    ## Pcur:    0.021
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   34000
+    ## 
+    ## Pcur:    0.017
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   35000
+    ## 
+    ## Pcur:    0.017
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   36000
+    ## 
+    ## Pcur:    0.006
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   37000
+    ## 
+    ## Pcur:    0.022
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   38000
+    ## 
+    ## Pcur:    0.023
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   39000
+    ## 
+    ## Pcur:    0.018
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   40000
+    ## 
+    ## Pcur:    0.003
+    ## 
+    ## Scale:   0.3181414
+    ## 
+    ## Current iteration:   41000
+    ## 
+    ## Pcur:    0.018
+    ## 
+    ## Scale:   0.1600537
+    ## 
+    ## Current iteration:   42000
+    ## 
+    ## Pcur:    0.03
+    ## 
+    ## Scale:   0.08777641
+    ## 
+    ## Current iteration:   43000
+    ## 
+    ## Pcur:    0.064
+    ## 
+    ## Scale:   0.05640073
+    ## 
+    ## Current iteration:   44000
+    ## 
+    ## Pcur:    0.125
+    ## 
+    ## Scale:   0.04375375
+    ## 
+    ## Current iteration:   45000
+    ## 
+    ## Pcur:    0.18
+    ## 
+    ## Scale:   0.03883791
+    ## 
+    ## Current iteration:   46000
+    ## 
+    ## Pcur:    0.19
+    ## 
+    ## Scale:   0.03526815
+    ## 
+    ## Current iteration:   47000
+    ## 
+    ## Pcur:    0.168
+    ## 
+    ## Scale:   0.030445
+    ## 
+    ## Current iteration:   48000
+    ## 
+    ## Pcur:    0.16
+    ## 
+    ## Scale:   0.0257874
+    ## 
+    ## Current iteration:   49000
+    ## 
+    ## Pcur:    0.21
+    ## 
+    ## Scale:   0.02448221
+    ## 
+    ## Current iteration:   50000
+    ## 
+    ## Current iteration:   51000
+    ## 
+    ## Current iteration:   52000
+    ## 
+    ## Current iteration:   53000
+    ## 
+    ## Current iteration:   54000
+    ## 
+    ## Current iteration:   55000
+    ## 
+    ## Current iteration:   56000
+    ## 
+    ## Current iteration:   57000
+    ## 
+    ## Current iteration:   58000
+    ## 
+    ## Current iteration:   59000
+    ## 
+    ## Current iteration:   60000
+    ## 
+    ## Current iteration:   61000
+    ## 
+    ## Current iteration:   62000
+    ## 
+    ## Current iteration:   63000
+    ## 
+    ## Current iteration:   64000
+    ## 
+    ## Current iteration:   65000
+    ## 
+    ## Current iteration:   66000
+    ## 
+    ## Current iteration:   67000
+    ## 
+    ## Current iteration:   68000
+    ## 
+    ## Current iteration:   69000
+    ## 
+    ## Current iteration:   70000
+    ## 
+    ## Current iteration:   71000
+    ## 
+    ## Current iteration:   72000
+    ## 
+    ## Current iteration:   73000
+    ## 
+    ## Current iteration:   74000
+    ## 
+    ## Current iteration:   75000
+    ## 
+    ## Current iteration:   76000
+    ## 
+    ## Current iteration:   77000
+    ## 
+    ## Current iteration:   78000
+    ## 
+    ## Current iteration:   79000
+    ## 
+    ## Current iteration:   80000
+    ## 
+    ## Current iteration:   81000
+    ## 
+    ## Current iteration:   82000
+    ## 
+    ## Current iteration:   83000
+    ## 
+    ## Current iteration:   84000
+    ## 
+    ## Current iteration:   85000
+    ## 
+    ## Current iteration:   86000
+    ## 
+    ## Current iteration:   87000
+    ## 
+    ## Current iteration:   88000
+    ## 
+    ## Current iteration:   89000
+    ## 
+    ## Current iteration:   90000
+    ## 
+    ## Current iteration:   91000
+    ## 
+    ## Current iteration:   92000
+    ## 
+    ## Current iteration:   93000
+    ## 
+    ## Current iteration:   94000
+    ## 
+    ## Current iteration:   95000
+    ## 
+    ## Current iteration:   96000
+    ## 
+    ## Current iteration:   97000
+    ## 
+    ## Current iteration:   98000
+    ## 
+    ## Current iteration:   99000
+    ## 
+    ## Current iteration:   100000
+    ## 
+    ## Current iteration:   101000
+    ## 
+    ## Current iteration:   102000
+    ## 
+    ## Current iteration:   103000
+    ## 
+    ## Current iteration:   104000
+    ## 
+    ## Current iteration:   105000
+    ## 
+    ## Current iteration:   106000
+    ## 
+    ## Current iteration:   107000
+    ## 
+    ## Current iteration:   108000
+    ## 
+    ## Current iteration:   109000
+    ## 
+    ## Current iteration:   110000
+    ## 
+    ## Current iteration:   111000
+    ## 
+    ## Current iteration:   112000
+    ## 
+    ## Current iteration:   113000
+    ## 
+    ## Current iteration:   114000
+    ## 
+    ## Current iteration:   115000
+    ## 
+    ## Current iteration:   116000
+    ## 
+    ## Current iteration:   117000
+    ## 
+    ## Current iteration:   118000
+    ## 
+    ## Current iteration:   119000
+    ## 
+    ## Current iteration:   120000
+    ## 
+    ## Current iteration:   121000
+    ## 
+    ## Current iteration:   122000
+    ## 
+    ## Current iteration:   123000
+    ## 
+    ## Current iteration:   124000
+    ## 
+    ## Current iteration:   125000
+    ## 
+    ## Current iteration:   126000
+    ## 
+    ## Current iteration:   127000
+    ## 
+    ## Current iteration:   128000
+    ## 
+    ## Current iteration:   129000
+    ## 
+    ## Current iteration:   130000
+    ## 
+    ## Current iteration:   131000
+    ## 
+    ## Current iteration:   132000
+    ## 
+    ## Current iteration:   133000
+    ## 
+    ## Current iteration:   134000
+    ## 
+    ## Current iteration:   135000
+    ## 
+    ## Current iteration:   136000
+    ## 
+    ## Current iteration:   137000
+    ## 
+    ## Current iteration:   138000
+    ## 
+    ## Current iteration:   139000
+    ## 
+    ## Current iteration:   140000
+    ## 
+    ## Current iteration:   141000
+    ## 
+    ## Current iteration:   142000
+    ## 
+    ## Current iteration:   143000
+    ## 
+    ## Current iteration:   144000
+    ## 
+    ## Current iteration:   145000
+    ## 
+    ## Current iteration:   146000
+    ## 
+    ## Current iteration:   147000
+    ## 
+    ## Current iteration:   148000
+    ## 
+    ## Current iteration:   149000
+    ## 
+    ## Current iteration:   150000
+    ## 
+    ## Pcur:    0.012
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   1000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   2000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   3000
+    ## 
+    ## Pcur:    0.003
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   4000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   5000
+    ## 
+    ## Pcur:    0.001
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   6000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   7000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   8000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   9000
+    ## 
+    ## Pcur:    0.003
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   10000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   11000
+    ## 
+    ## Pcur:    0.01
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   12000
+    ## 
+    ## Pcur:    0.027
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   13000
+    ## 
+    ## Pcur:    0.054
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   14000
+    ## 
+    ## Pcur:    0.051
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   15000
+    ## 
+    ## Pcur:    0.08
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   16000
+    ## 
+    ## Pcur:    0.06
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   17000
+    ## 
+    ## Pcur:    0.107
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   18000
+    ## 
+    ## Pcur:    0.102
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   19000
+    ## 
+    ## Pcur:    0.09
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   20000
+    ## 
+    ## Pcur:    0.084
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   21000
+    ## 
+    ## Pcur:    0.031
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   22000
+    ## 
+    ## Pcur:    0.04
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   23000
+    ## 
+    ## Pcur:    0.049
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   24000
+    ## 
+    ## Pcur:    0.018
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   25000
+    ## 
+    ## Pcur:    0.022
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   26000
+    ## 
+    ## Pcur:    0.012
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   27000
+    ## 
+    ## Pcur:    0.031
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   28000
+    ## 
+    ## Pcur:    0.02
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   29000
+    ## 
+    ## Pcur:    0.004
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   30000
+    ## 
+    ## Pcur:    0.021
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   31000
+    ## 
+    ## Pcur:    0.027
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   32000
+    ## 
+    ## Pcur:    0.016
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   33000
+    ## 
+    ## Pcur:    0.031
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   34000
+    ## 
+    ## Pcur:    0.023
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   35000
+    ## 
+    ## Pcur:    0.017
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   36000
+    ## 
+    ## Pcur:    0.009
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   37000
+    ## 
+    ## Pcur:    0.022
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   38000
+    ## 
+    ## Pcur:    0.029
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   39000
+    ## 
+    ## Pcur:    0.014
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   40000
+    ## 
+    ## Pcur:    0.013
+    ## 
+    ## Scale:   0.3801321
+    ## 
+    ## Current iteration:   41000
+    ## 
+    ## Pcur:    0.028
+    ## 
+    ## Scale:   0.2058912
+    ## 
+    ## Current iteration:   42000
+    ## 
+    ## Pcur:    0.071
+    ## 
+    ## Scale:   0.1357175
+    ## 
+    ## Current iteration:   43000
+    ## 
+    ## Pcur:    0.112
+    ## 
+    ## Scale:   0.1016316
+    ## 
+    ## Current iteration:   44000
+    ## 
+    ## Pcur:    0.126
+    ## 
+    ## Scale:   0.07905117
+    ## 
+    ## Current iteration:   45000
+    ## 
+    ## Pcur:    0.137
+    ## 
+    ## Scale:   0.06326609
+    ## 
+    ## Current iteration:   46000
+    ## 
+    ## Pcur:    0.157
+    ## 
+    ## Scale:   0.0532026
+    ## 
+    ## Current iteration:   47000
+    ## 
+    ## Pcur:    0.192
+    ## 
+    ## Scale:   0.04853076
+    ## 
+    ## Current iteration:   48000
+    ## 
+    ## Pcur:    0.162
+    ## 
+    ## Scale:   0.04130313
+    ## 
+    ## Current iteration:   49000
+    ## 
+    ## Pcur:    0.207
+    ## 
+    ## Scale:   0.03895495
+    ## 
+    ## Current iteration:   50000
+    ## 
+    ## Current iteration:   51000
+    ## 
+    ## Current iteration:   52000
+    ## 
+    ## Current iteration:   53000
+    ## 
+    ## Current iteration:   54000
+    ## 
+    ## Current iteration:   55000
+    ## 
+    ## Current iteration:   56000
+    ## 
+    ## Current iteration:   57000
+    ## 
+    ## Current iteration:   58000
+    ## 
+    ## Current iteration:   59000
+    ## 
+    ## Current iteration:   60000
+    ## 
+    ## Current iteration:   61000
+    ## 
+    ## Current iteration:   62000
+    ## 
+    ## Current iteration:   63000
+    ## 
+    ## Current iteration:   64000
+    ## 
+    ## Current iteration:   65000
+    ## 
+    ## Current iteration:   66000
+    ## 
+    ## Current iteration:   67000
+    ## 
+    ## Current iteration:   68000
+    ## 
+    ## Current iteration:   69000
+    ## 
+    ## Current iteration:   70000
+    ## 
+    ## Current iteration:   71000
+    ## 
+    ## Current iteration:   72000
+    ## 
+    ## Current iteration:   73000
+    ## 
+    ## Current iteration:   74000
+    ## 
+    ## Current iteration:   75000
+    ## 
+    ## Current iteration:   76000
+    ## 
+    ## Current iteration:   77000
+    ## 
+    ## Current iteration:   78000
+    ## 
+    ## Current iteration:   79000
+    ## 
+    ## Current iteration:   80000
+    ## 
+    ## Current iteration:   81000
+    ## 
+    ## Current iteration:   82000
+    ## 
+    ## Current iteration:   83000
+    ## 
+    ## Current iteration:   84000
+    ## 
+    ## Current iteration:   85000
+    ## 
+    ## Current iteration:   86000
+    ## 
+    ## Current iteration:   87000
+    ## 
+    ## Current iteration:   88000
+    ## 
+    ## Current iteration:   89000
+    ## 
+    ## Current iteration:   90000
+    ## 
+    ## Current iteration:   91000
+    ## 
+    ## Current iteration:   92000
+    ## 
+    ## Current iteration:   93000
+    ## 
+    ## Current iteration:   94000
+    ## 
+    ## Current iteration:   95000
+    ## 
+    ## Current iteration:   96000
+    ## 
+    ## Current iteration:   97000
+    ## 
+    ## Current iteration:   98000
+    ## 
+    ## Current iteration:   99000
+    ## 
+    ## Current iteration:   100000
+    ## 
+    ## Current iteration:   101000
+    ## 
+    ## Current iteration:   102000
+    ## 
+    ## Current iteration:   103000
+    ## 
+    ## Current iteration:   104000
+    ## 
+    ## Current iteration:   105000
+    ## 
+    ## Current iteration:   106000
+    ## 
+    ## Current iteration:   107000
+    ## 
+    ## Current iteration:   108000
+    ## 
+    ## Current iteration:   109000
+    ## 
+    ## Current iteration:   110000
+    ## 
+    ## Current iteration:   111000
+    ## 
+    ## Current iteration:   112000
+    ## 
+    ## Current iteration:   113000
+    ## 
+    ## Current iteration:   114000
+    ## 
+    ## Current iteration:   115000
+    ## 
+    ## Current iteration:   116000
+    ## 
+    ## Current iteration:   117000
+    ## 
+    ## Current iteration:   118000
+    ## 
+    ## Current iteration:   119000
+    ## 
+    ## Current iteration:   120000
+    ## 
+    ## Current iteration:   121000
+    ## 
+    ## Current iteration:   122000
+    ## 
+    ## Current iteration:   123000
+    ## 
+    ## Current iteration:   124000
+    ## 
+    ## Current iteration:   125000
+    ## 
+    ## Current iteration:   126000
+    ## 
+    ## Current iteration:   127000
+    ## 
+    ## Current iteration:   128000
+    ## 
+    ## Current iteration:   129000
+    ## 
+    ## Current iteration:   130000
+    ## 
+    ## Current iteration:   131000
+    ## 
+    ## Current iteration:   132000
+    ## 
+    ## Current iteration:   133000
+    ## 
+    ## Current iteration:   134000
+    ## 
+    ## Current iteration:   135000
+    ## 
+    ## Current iteration:   136000
+    ## 
+    ## Current iteration:   137000
+    ## 
+    ## Current iteration:   138000
+    ## 
+    ## Current iteration:   139000
+    ## 
+    ## Current iteration:   140000
+    ## 
+    ## Current iteration:   141000
+    ## 
+    ## Current iteration:   142000
+    ## 
+    ## Current iteration:   143000
+    ## 
+    ## Current iteration:   144000
+    ## 
+    ## Current iteration:   145000
+    ## 
+    ## Current iteration:   146000
+    ## 
+    ## Current iteration:   147000
+    ## 
+    ## Current iteration:   148000
+    ## 
+    ## Current iteration:   149000
+    ## 
+    ## Current iteration:   150000
+    ## 
+    ## Pcur:    0.027
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   1000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   2000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   3000
+    ## 
+    ## Pcur:    0.004
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   4000
+    ## 
+    ## Pcur:    0.001
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   5000
+    ## 
+    ## Pcur:    0.003
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   6000
+    ## 
+    ## Pcur:    0.003
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   7000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   8000
+    ## 
+    ## Pcur:    0
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   9000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   10000
+    ## 
+    ## Pcur:    0.002
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   11000
+    ## 
+    ## Pcur:    0.008
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   12000
+    ## 
+    ## Pcur:    0.01
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   13000
+    ## 
+    ## Pcur:    0.045
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   14000
+    ## 
+    ## Pcur:    0.048
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   15000
+    ## 
+    ## Pcur:    0.067
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   16000
+    ## 
+    ## Pcur:    0.051
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   17000
+    ## 
+    ## Pcur:    0.025
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   18000
+    ## 
+    ## Pcur:    0.059
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   19000
+    ## 
+    ## Pcur:    0.026
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   20000
+    ## 
+    ## Pcur:    0.039
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   21000
+    ## 
+    ## Pcur:    0.022
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   22000
+    ## 
+    ## Pcur:    0.038
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   23000
+    ## 
+    ## Pcur:    0.052
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   24000
+    ## 
+    ## Pcur:    0.049
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   25000
+    ## 
+    ## Pcur:    0.053
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   26000
+    ## 
+    ## Pcur:    0.061
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   27000
+    ## 
+    ## Pcur:    0.049
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   28000
+    ## 
+    ## Pcur:    0.033
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   29000
+    ## 
+    ## Pcur:    0.041
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   30000
+    ## 
+    ## Pcur:    0.025
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   31000
+    ## 
+    ## Pcur:    0.03
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   32000
+    ## 
+    ## Pcur:    0.023
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   33000
+    ## 
+    ## Pcur:    0.036
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   34000
+    ## 
+    ## Pcur:    0.046
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   35000
+    ## 
+    ## Pcur:    0.043
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   36000
+    ## 
+    ## Pcur:    0.035
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   37000
+    ## 
+    ## Pcur:    0.034
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   38000
+    ## 
+    ## Pcur:    0.031
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   39000
+    ## 
+    ## Pcur:    0.048
+    ## 
+    ## Scale:   0.7933333
+    ## 
+    ## Current iteration:   40000
+    ## 
+    ## Pcur:    0.04
+    ## 
+    ## Scale:   0.4597253
+    ## 
+    ## Current iteration:   41000
+    ## 
+    ## Pcur:    0.092
+    ## 
+    ## Scale:   0.3247161
+    ## 
+    ## Current iteration:   42000
+    ## 
+    ## Pcur:    0.1
+    ## 
+    ## Scale:   0.2349452
+    ## 
+    ## Current iteration:   43000
+    ## 
+    ## Pcur:    0.136
+    ## 
+    ## Scale:   0.187552
+    ## 
+    ## Current iteration:   44000
+    ## 
+    ## Pcur:    0.145
+    ## 
+    ## Scale:   0.1531533
+    ## 
+    ## Current iteration:   45000
+    ## 
+    ## Pcur:    0.133
+    ## 
+    ## Scale:   0.1213215
+    ## 
+    ## Current iteration:   46000
+    ## 
+    ## Pcur:    0.141
+    ## 
+    ## Scale:   0.0980838
+    ## 
+    ## Current iteration:   47000
+    ## 
+    ## Pcur:    0.202
+    ## 
+    ## Scale:   0.09149123
+    ## 
+    ## Current iteration:   48000
+    ## 
+    ## Pcur:    0.188
+    ## 
+    ## Scale:   0.08270704
+    ## 
+    ## Current iteration:   49000
+    ## 
+    ## Pcur:    0.225
+    ## 
+    ## Scale:   0.08112414
+    ## 
+    ## Current iteration:   50000
+    ## 
+    ## Current iteration:   51000
+    ## 
+    ## Current iteration:   52000
+    ## 
+    ## Current iteration:   53000
+    ## 
+    ## Current iteration:   54000
+    ## 
+    ## Current iteration:   55000
+    ## 
+    ## Current iteration:   56000
+    ## 
+    ## Current iteration:   57000
+    ## 
+    ## Current iteration:   58000
+    ## 
+    ## Current iteration:   59000
+    ## 
+    ## Current iteration:   60000
+    ## 
+    ## Current iteration:   61000
+    ## 
+    ## Current iteration:   62000
+    ## 
+    ## Current iteration:   63000
+    ## 
+    ## Current iteration:   64000
+    ## 
+    ## Current iteration:   65000
+    ## 
+    ## Current iteration:   66000
+    ## 
+    ## Current iteration:   67000
+    ## 
+    ## Current iteration:   68000
+    ## 
+    ## Current iteration:   69000
+    ## 
+    ## Current iteration:   70000
+    ## 
+    ## Current iteration:   71000
+    ## 
+    ## Current iteration:   72000
+    ## 
+    ## Current iteration:   73000
+    ## 
+    ## Current iteration:   74000
+    ## 
+    ## Current iteration:   75000
+    ## 
+    ## Current iteration:   76000
+    ## 
+    ## Current iteration:   77000
+    ## 
+    ## Current iteration:   78000
+    ## 
+    ## Current iteration:   79000
+    ## 
+    ## Current iteration:   80000
+    ## 
+    ## Current iteration:   81000
+    ## 
+    ## Current iteration:   82000
+    ## 
+    ## Current iteration:   83000
+    ## 
+    ## Current iteration:   84000
+    ## 
+    ## Current iteration:   85000
+    ## 
+    ## Current iteration:   86000
+    ## 
+    ## Current iteration:   87000
+    ## 
+    ## Current iteration:   88000
+    ## 
+    ## Current iteration:   89000
+    ## 
+    ## Current iteration:   90000
+    ## 
+    ## Current iteration:   91000
+    ## 
+    ## Current iteration:   92000
+    ## 
+    ## Current iteration:   93000
+    ## 
+    ## Current iteration:   94000
+    ## 
+    ## Current iteration:   95000
+    ## 
+    ## Current iteration:   96000
+    ## 
+    ## Current iteration:   97000
+    ## 
+    ## Current iteration:   98000
+    ## 
+    ## Current iteration:   99000
+    ## 
+    ## Current iteration:   100000
+    ## 
+    ## Current iteration:   101000
+    ## 
+    ## Current iteration:   102000
+    ## 
+    ## Current iteration:   103000
+    ## 
+    ## Current iteration:   104000
+    ## 
+    ## Current iteration:   105000
+    ## 
+    ## Current iteration:   106000
+    ## 
+    ## Current iteration:   107000
+    ## 
+    ## Current iteration:   108000
+    ## 
+    ## Current iteration:   109000
+    ## 
+    ## Current iteration:   110000
+    ## 
+    ## Current iteration:   111000
+    ## 
+    ## Current iteration:   112000
+    ## 
+    ## Current iteration:   113000
+    ## 
+    ## Current iteration:   114000
+    ## 
+    ## Current iteration:   115000
+    ## 
+    ## Current iteration:   116000
+    ## 
+    ## Current iteration:   117000
+    ## 
+    ## Current iteration:   118000
+    ## 
+    ## Current iteration:   119000
+    ## 
+    ## Current iteration:   120000
+    ## 
+    ## Current iteration:   121000
+    ## 
+    ## Current iteration:   122000
+    ## 
+    ## Current iteration:   123000
+    ## 
+    ## Current iteration:   124000
+    ## 
+    ## Current iteration:   125000
+    ## 
+    ## Current iteration:   126000
+    ## 
+    ## Current iteration:   127000
+    ## 
+    ## Current iteration:   128000
+    ## 
+    ## Current iteration:   129000
+    ## 
+    ## Current iteration:   130000
+    ## 
+    ## Current iteration:   131000
+    ## 
+    ## Current iteration:   132000
+    ## 
+    ## Current iteration:   133000
+    ## 
+    ## Current iteration:   134000
+    ## 
+    ## Current iteration:   135000
+    ## 
+    ## Current iteration:   136000
+    ## 
+    ## Current iteration:   137000
+    ## 
+    ## Current iteration:   138000
+    ## 
+    ## Current iteration:   139000
+    ## 
+    ## Current iteration:   140000
+    ## 
+    ## Current iteration:   141000
+    ## 
+    ## Current iteration:   142000
+    ## 
+    ## Current iteration:   143000
+    ## 
+    ## Current iteration:   144000
+    ## 
+    ## Current iteration:   145000
+    ## 
+    ## Current iteration:   146000
+    ## 
+    ## Current iteration:   147000
+    ## 
+    ## Current iteration:   148000
+    ## 
+    ## Current iteration:   149000
+    ## 
+    ## Current iteration:   150000
+    ## 
+
+After the MCMC sampling is finished, we use a function from `lazymcmc`
+to load in all of the MCMC chains, and we then use `ggplot2` to
+investigate the trace plots to check for convergence.
+
+``` r
+## Read in the MCMC chains
+chains <- load_mcmc_chains(location="mcmc_chains/readme_single_cross_section",
+                           parTab=start_tab,
+                           burnin=mcmc_pars["adaptive_period"],
+                           chainNo = TRUE,
+                           unfixed=TRUE,
+                           multi = TRUE)
+## [1] "mcmc_chains/readme_single_cross_section/readme_seir_1_multivariate_chain.csv"
+## [2] "mcmc_chains/readme_single_cross_section/readme_seir_2_multivariate_chain.csv"
+## [3] "mcmc_chains/readme_single_cross_section/readme_seir_3_multivariate_chain.csv"
+## [[1]]
+## [1] 1001
+## 
+## [[2]]
+## [1] 1001
+## 
+## [[3]]
+## [1] 1001
+## Reshape for plotting
+chains_melted <- chains$chain %>% as_tibble %>% group_by(chain) %>% mutate(sampno=1:n()) %>% pivot_longer(-c(sampno,chain))
+## Look at trace plots
+p_trace <- ggplot(chains_melted) + 
+  geom_line(aes(x=sampno,y=value,col=as.factor(chain))) + 
+  facet_wrap(~name,scales="free_y") + 
+  scale_color_viridis_d(name="Chain") + 
+  theme_bw() +
+  xlab("Iteration") +
+  ylab("Value")
+p_trace
+```
+
+![](man/figures/unnamed-chunk-15-1.png)<!-- --> We also use the MCMC
+chains (loaded with `unfixed=FALSE` here to include all fixed
+parameters) to solve the model using a number of posterior draws. This
+allows us to construct credible intervals on the model predictions and
+to visualize the inferred incidence curve.
+
+``` r
+## Load in MCMC chains again, but this time read in the fixed parameters too 
+## to ensure that the posterior draws are compatible with the model functions
+chains <- load_mcmc_chains(location="mcmc_chains/readme_single_cross_section",
+                           parTab=start_tab,
+                           burnin=mcmc_pars["adaptive_period"],
+                           chainNo = FALSE,
+                           unfixed=FALSE,
+                           multi = TRUE)
+## [1] "mcmc_chains/readme_single_cross_section/readme_seir_1_multivariate_chain.csv"
+## [2] "mcmc_chains/readme_single_cross_section/readme_seir_2_multivariate_chain.csv"
+## [3] "mcmc_chains/readme_single_cross_section/readme_seir_3_multivariate_chain.csv"
+## [[1]]
+## [1] 1001
+## 
+## [[2]]
+## [1] 1001
+## 
+## [[3]]
+## [1] 1001
+## Do some reshaping to allow correct subsampling
+chain_comb <- chains$chain %>% as_tibble() %>% mutate(sampno=1:n()) %>% as.data.frame()
+data(example_seir_incidence)
+predictions <- plot_prob_infection(chain_comb, 
+                                   nsamps=100, 
+                                   INCIDENCE_FUNC=incidence_function,
+                                  solve_times=0:max(ct_data_use$t),
+                                   obs_dat=ct_data_use,
+                                  true_prob_infection = example_seir_incidence)
+p_incidence_prediction <- predictions$plot
+p_incidence_prediction
+```
+
+![](man/figures/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+model_func <- create_posterior_func(example_seir_partab,ct_data_use,NULL,incidence_function,"model")
+p_distribution_fit <- plot_distribution_fits(chain_comb, ct_data_use, model_func,100,pos_only=FALSE)
+## Joining, by = "t"
+## Joining, by = c("t", "sampno")
+## Coordinate system already present. Adding new coordinate system, which will replace the existing one.
+p_distribution_fit
+## Warning: Removed 5 row(s) containing missing values (geom_path).
+```
+
+![](man/figures/unnamed-chunk-17-1.png)<!-- -->

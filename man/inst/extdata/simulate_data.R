@@ -15,22 +15,21 @@ library(ggthemes)
 library(odin) ## install from CRAN
 library(doParallel)
 library(fitdistrplus)
-#library(virosolver) ## install from devtools::install_github("jameshay218/virosolver")
+library(virosolver) ## install from devtools::install_github("jameshay218/virosolver")
 devtools::load_all("~/Documents/GitHub/virosolver")
-
 HOME_WD <- "~/Documents/GitHub/"
 
 ## Where to perform the simulations
 MAIN_WD <- paste0(HOME_WD,"/virosolver/man/inst/extdata")
 setwd(MAIN_WD)
 
-## Load functions for line list simulation
-source("sim_funcs.R")
-
 ########################################
 ## 2. Model parameters and simulation settings
 ########################################
 ## Model parameters
+#example_seir_partab <- read.csv("~/Documents/GitHub/virosolver_paper/pars/massachusetts/partab_seir_model.csv")
+#example_seir_partab[example_seir_partab$names == "I0","values"] <- 1/10000
+#save(example_seir_partab,file="~/Documents/GitHub/virosolver/data/example_seir_partab.RData")
 data(example_seir_partab)
 pars <- example_seir_partab$values
 names(pars) <- example_seir_partab$names
@@ -120,6 +119,9 @@ simulated_viral_loads <- simulate_viral_loads_wrapper(observed_linelist$sampled_
 obs_dat <- simulated_viral_loads %>% dplyr::select(sampled_time, ct_obs) %>%
   rename(t = sampled_time, ct=ct_obs) %>% arrange(t)
 
+example_ct_data <- obs_dat
+#save(example_ct_data,file="~/Documents/GitHub/virosolver/data/example_ct_data.RData")
+
 ## Save SEIR plots
 ## Ct distribution plot
 p_dat <- ggplot(obs_dat %>% filter(ct < pars["intercept"])) + 
@@ -132,4 +134,5 @@ p_dat <- ggplot(obs_dat %>% filter(ct < pars["intercept"])) +
   xlab("Observation time")
 p_dat
 
-
+example_seir_incidence <- tibble(t=0:250,prob_infection=incidence)
+#save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")

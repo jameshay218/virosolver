@@ -52,8 +52,22 @@
 #' @usage data(example_ct_data)
 #' @format A data frame with 15984 rows and 2 variables:
 #' \describe{
-#'     \item{t}{time in days that the sample was taken, relative to the start time of the simulation (simulation start time on t=0)}
+#'     \item{t}{Time in days that the sample was taken, relative to the start time of the simulation (simulation start time on t=0)}
 #'     \item{ct}{Ct value of the sample}
 #' }
 #' @family example_data
 "example_ct_data"
+
+#' True simulated SEIR incidence
+#' 
+#' The true SEIR incidence curve used in the case study simulation
+#' @docType data
+#' @docType data
+#' @usage data(example_seir_incidence)
+#' @format A tible with 251 rows and 2 columns
+#' \describe{
+#'     \item{t}{Time in days}
+#'     \item{prob_infection}{Per capita incidence}
+#' }
+#' @family example_data
+"example_seir_incidence"
