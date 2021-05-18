@@ -3,8 +3,7 @@ output: github_document
 ---
 
 ```{r setup, echo=FALSE}
-knitr::opts_chunk$set(eval=TRUE,collapse=TRUE,
-  fig.path="man/figures/")
+knitr::opts_chunk$set(eval=TRUE,collapse=TRUE,warning=FALSE,fig.path="man/figures/")
 ```
 
 [![DOI](https://zenodo.org/badge/301812162.svg)](https://zenodo.org/badge/latestdoi/301812162)
@@ -40,10 +39,8 @@ The best way to get started is to **read the accompanying vignette**, which take
 
 Below is a snippet of code providing the absolute minimum R calls needed to get the MCMC framework up and running. I would *strongly* advise that you use the vignette instead and read the accompanying [paper](https://doi.org/10.1101/2020.10.08.20204222) to avoid making early mistakes or getting started with flawed assumptions.
 
+First, setup up all of the libraries and attach the example data.
 ```{r,eval=TRUE}
-################################################
-## HEADERS
-################################################
 library(virosolver)
 library(lazymcmc)
 library(tidyverse)
@@ -54,10 +51,10 @@ data(example_ct_data)
 
 ## Attach parameter table for MCMC control
 data(example_gp_partab)
+```
 
-################################################
-## PRIOR AND PRE-COMPUTATION
-################################################
+Next, we define priors, resize the Markov chain Monte Carlo (MCMC) control table and set the MCMC chain length.
+```{r}
 ## Re-size the parameter control table to fit the data dimensions
 ## This is for the GP version
 times <- 0:max(example_ct_data$t)
@@ -114,13 +111,12 @@ prior_func_gp <- function(pars, ...){
 
 ## MCMC chain options
 mcmc_pars <- c("iterations"=200000,"popt"=0.44,"opt_freq"=2000,
-                    "thin"=100,"adaptive_period"=100000,"save_block"=100)
+                    "thin"=100,"adaptive_period"=100000,"save_block"=1000)
 
 ```
+
+Run the MCMC framework.
 ```{r,eval=FALSE}
-################################################
-## RUN MCMC
-################################################
 output <- run_MCMC(parTab=par_tab,
                      data=example_ct_data,
                      INCIDENCE_FUNC=gaussian_process_model,
@@ -134,12 +130,11 @@ output <- run_MCMC(parTab=par_tab,
                      t_dist=t_dist)
 print(output$file)
 ```
+
+Finally, read in the MCMC chain and use a pre-built function to compare the estimated incidence curve to the true incidence curve (blue line) from the simulated data. In practice you should run multiple chains and check for convergence, as in the vignette.
 ```{r,eval=TRUE}
-################################################
-## READ IN CHAIN AND PLOT ESTIMATED INCIDENCE CURVE
-################################################
 chain <- read.csv("example_univariate_chain.csv")
-#chain <- chain[chain$sampno > mcmc_pars["adaptive_period"],]
+chain <- chain[chain$sampno > mcmc_pars["adaptive_period"],]
 data(example_seir_incidence)
 predictions <- plot_prob_infection(chain, 
                                    nsamps=100, 

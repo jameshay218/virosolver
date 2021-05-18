@@ -63,10 +63,9 @@ you use the vignette instead and read the accompanying
 [paper](https://doi.org/10.1101/2020.10.08.20204222) to avoid making
 early mistakes or getting started with flawed assumptions.
 
+First, setup up all of the libraries and attach the example data.
+
 ``` r
-################################################
-## HEADERS
-################################################
 library(virosolver)
 library(lazymcmc)
 library(tidyverse)
@@ -85,10 +84,12 @@ data(example_ct_data)
 
 ## Attach parameter table for MCMC control
 data(example_gp_partab)
+```
 
-################################################
-## PRIOR AND PRE-COMPUTATION
-################################################
+Next, we define priors, resize the Markov chain Monte Carlo (MCMC)
+control table and set the MCMC chain length.
+
+``` r
 ## Re-size the parameter control table to fit the data dimensions
 ## This is for the GP version
 times <- 0:max(example_ct_data$t)
@@ -148,10 +149,9 @@ mcmc_pars <- c("iterations"=200000,"popt"=0.44,"opt_freq"=2000,
                     "thin"=100,"adaptive_period"=100000,"save_block"=100)
 ```
 
+Run the MCMC framework.
+
 ``` r
-################################################
-## RUN MCMC
-################################################
 output <- run_MCMC(parTab=par_tab,
                      data=example_ct_data,
                      INCIDENCE_FUNC=gaussian_process_model,
@@ -165,6 +165,11 @@ output <- run_MCMC(parTab=par_tab,
                      t_dist=t_dist)
 print(output$file)
 ```
+
+Finally, read in the MCMC chain and use a pre-built function to compare
+the estimated incidence curve to the true incidence curve (blue line)
+from the simulated data. In practice you should run multiple chains and
+check for convergence, as in the vignette.
 
 ``` r
 ################################################
@@ -182,10 +187,6 @@ predictions <- plot_prob_infection(chain,
                                   smooth=TRUE) ## Smooth the trajectories a bit
 p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
 p_incidence_prediction
-## Warning: Removed 300 row(s) containing missing values (geom_path).
-## Warning: Removed 3 row(s) containing missing values (geom_path).
-## Warning: Removed 100 row(s) containing missing values (geom_path).
-## Warning: Removed 1 rows containing missing values (geom_vline).
 ```
 
-![](man/figures/unnamed-chunk-4-1.png)<!-- -->
+![](man/figures/unnamed-chunk-5-1.png)<!-- -->
