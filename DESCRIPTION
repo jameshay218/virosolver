@@ -1,6 +1,6 @@
 Package: virosolver
-Title: Infers epidemic dynamics based on viral loads
-Version: 0.0.0.9000
+Title: Infers epidemic dynamics using viral load data
+Version: 1.0
 Authors@R: 
     c(person(given = "James",
              family = "Hay",
@@ -8,7 +8,7 @@ Authors@R:
              email = "jameshay218@gmail.com",
              comment = c(ORCID = "0000-0002-1998-1844")))
 Maintainer: James Hay <jameshay218@gmail.com>
-Description: Infers epidemic dynamics based on viral loads
+Description: An R package with compiled code to infers incidence curves using input viral load data as Ct values, where the Ct values are generated from random cross-sectional samples. The model much calibrated to the relevant pathogen's viral kinetics following infection.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
