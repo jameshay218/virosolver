@@ -31,6 +31,7 @@ setwd(MAIN_WD)
 ## Model parameters
 #example_seir_partab <- read.csv("~/Documents/GitHub/virosolver_paper/pars/massachusetts/partab_seir_model.csv")
 #example_seir_partab[example_seir_partab$names == "I0","values"] <- 1/10000
+#example_seir_partab[example_seir_partab$names == "R0","values"] <- 1.8
 #save(example_seir_partab,file="~/Documents/GitHub/virosolver/data/example_seir_partab.RData")
 data(example_seir_partab)
 pars <- example_seir_partab$values
@@ -64,7 +65,7 @@ times <- 0:250
 ## Sampling procedure - how often do we take samples from the population?
 sampling_frequency <- 14
 ## How many samples do we take on each sample day?
-sampling_number <- 2000
+sampling_number <- 1000
 
 
 ########################################
@@ -137,4 +138,4 @@ p_dat <- ggplot(obs_dat %>% filter(ct < pars["intercept"])) +
 p_dat
 
 example_seir_incidence <- tibble(t=0:250,prob_infection=incidence)
-#save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")
+save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")
