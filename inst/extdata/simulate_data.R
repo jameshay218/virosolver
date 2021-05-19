@@ -138,4 +138,4 @@ p_dat <- ggplot(obs_dat %>% filter(ct < pars["intercept"])) +
 p_dat
 
 example_seir_incidence <- tibble(t=0:250,prob_infection=incidence)
-save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")
+#save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")
