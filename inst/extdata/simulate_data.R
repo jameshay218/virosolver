@@ -29,11 +29,11 @@ setwd(MAIN_WD)
 ## 2. Model parameters and simulation settings
 ########################################
 ## Model parameters
-#example_seir_partab <- read.csv("~/Documents/GitHub/virosolver_paper/pars/massachusetts/partab_seir_model.csv")
-#example_seir_partab[example_seir_partab$names == "I0","values"] <- 1/10000
-#example_seir_partab[example_seir_partab$names == "R0","values"] <- 2
-#save(example_seir_partab,file="~/Documents/GitHub/virosolver/data/example_seir_partab.RData")
-data(example_seir_partab)
+example_seir_partab <- read.csv("~/Documents/GitHub/virosolver_paper/pars/massachusetts/partab_seir_model.csv")
+example_seir_partab[example_seir_partab$names == "I0","values"] <- 1/10000
+example_seir_partab[example_seir_partab$names == "R0","values"] <- 2
+save(example_seir_partab,file="~/Documents/GitHub/virosolver/data/example_seir_partab.RData")
+#data(example_seir_partab)
 pars <- example_seir_partab$values
 names(pars) <- example_seir_partab$names
 
@@ -100,7 +100,7 @@ sample_probs <- c(rep(0, sampling_frequency-1),sampling_number/population_n)
 sample_probs <- rep(sample_probs, length(times)/sampling_frequency +1)
 sample_probs <- sample_probs[1:length(times)]
 frac_report <- tibble(t=times,prob=sample_probs)
-frac_report <- frac_report %>% filter(t >= 50 & t <= 200)
+frac_report <- frac_report %>% filter(t >= 50 & t <= 180)
 
 ## frac_report is a table, giving the proportion (prob) of the population
 ## sampled on day t
@@ -123,7 +123,7 @@ obs_dat <- simulated_viral_loads %>% dplyr::select(sampled_time, ct_obs) %>%
   rename(t = sampled_time, ct=ct_obs) %>% arrange(t)
 
 example_ct_data <- obs_dat
-#save(example_ct_data,file="~/Documents/GitHub/virosolver/data/example_ct_data.RData")
+save(example_ct_data,file="~/Documents/GitHub/virosolver/data/example_ct_data.RData")
 
 ## Save SEIR plots
 ## Ct distribution plot
@@ -138,4 +138,4 @@ p_dat <- ggplot(obs_dat %>% filter(ct < pars["intercept"])) +
 p_dat
 
 example_seir_incidence <- tibble(t=0:250,prob_infection=incidence)
-#save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")
+save(example_seir_incidence,file="~/Documents/GitHub/virosolver/data/example_seir_incidence.RData")
