@@ -18,6 +18,8 @@ all scripts for the paper found at the git repository at
 A more user-friendly, stripped down version of the package is under
 development.
 
+[Website.](https://jameshay218.github.io/virosolver/index.html)
+
 # Setup
 
 This package relies on the `lazymcmc` R package, which is used for the
@@ -55,7 +57,7 @@ The best way to get started is to **read the accompanying vignette**,
 which takes you through the process of using `virosolver` step by step.
 
 [The vignette can be found
-here.](https://jameshay218.github.io/virosolver/inst/doc/vignette.html)
+here.](https://jameshay218.github.io/virosolver/articles/vignette.html)
 
 Below is a snippet of code providing the absolute minimum R calls needed
 to get the MCMC framework up and running. I would *strongly* advise that

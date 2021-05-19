@@ -16,6 +16,8 @@ Documentation for this package is a work in progress and will seem a little over
 
 A more user-friendly, stripped down version of the package is under development.
 
+[Website.](https://jameshay218.github.io/virosolver/index.html)
+
 # Setup
 
 This package relies on the `lazymcmc` R package, which is used for the MCMC procedure. This is easy to do with `devtools::install_github("jameshay218/lazymcmc")`. *However*, for many analyses where multi-modal posteriors are suspected, a separate branch implementing parallel tempering is needed. I'd recommend you set this up as follows:
@@ -35,7 +37,7 @@ Finally, this code uses compiled code with Rcpp, so you'll need a C++ compiler (
 # Getting started
 The best way to get started is to **read the accompanying vignette**, which takes you through the process of using `virosolver` step by step.
 
-[The vignette can be found here.](https://jameshay218.github.io/virosolver/inst/doc/vignette.html)
+[The vignette can be found here.](https://jameshay218.github.io/virosolver/articles/vignette.html)
 
 Below is a snippet of code providing the absolute minimum R calls needed to get the MCMC framework up and running. I would *strongly* advise that you use the vignette instead and read the accompanying [paper](https://doi.org/10.1101/2020.10.08.20204222) to avoid making early mistakes or getting started with flawed assumptions.
 

@@ -1,5 +1,5 @@
 Package: virosolver
-Title: Infers epidemic dynamics using viral load data
+Title: Infer epidemic dynamics using viral load data
 Version: 1.0
 Authors@R: 
     c(person(given = "James",

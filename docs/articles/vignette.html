@@ -188,12 +188,12 @@
 <span class="co">## # A tibble: 6 x 3</span>
 <span class="co">##     age i        ct</span>
 <span class="co">##   &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;</span>
-<span class="co">## 1     1 1      38.0</span>
-<span class="co">## 2     1 2      38.1</span>
-<span class="co">## 3     1 3      32.3</span>
-<span class="co">## 4     1 4      29.5</span>
-<span class="co">## 5     1 5      37.4</span>
-<span class="co">## 6     1 6      39.5</span>
+<span class="co">## 1     1 1      32.4</span>
+<span class="co">## 2     1 2      29.5</span>
+<span class="co">## 3     1 3      32.5</span>
+<span class="co">## 4     1 4      40  </span>
+<span class="co">## 5     1 5      32.1</span>
+<span class="co">## 6     1 6      40</span>
 <span class="va">p_sim_cts_age</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">sim_cts</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">ct</span> <span class="op">&lt;</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">age</span>,y<span class="op">=</span><span class="va">ct</span><span class="op">)</span>,alpha<span class="op">=</span><span class="fl">0.25</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>trans<span class="op">=</span><span class="st">"reverse"</span>,limits<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>,<span class="fl">10</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
