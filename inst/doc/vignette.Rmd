@@ -59,7 +59,7 @@ p_detectable_data <- example_ct_data %>%
   summarize(prev=sum(detect)/n()) %>% 
   ggplot() + geom_point(aes(x=t,y=prev)) + 
   theme_bw() + 
-  scale_y_continuous(limits=c(0,0.5)) + 
+  scale_y_continuous(limits=c(0,0.6)) + 
   ylab("Proportion detectable") +
   ggtitle("Proportion of samples with Ct values < 40") +
   xlab("Observation time") 
