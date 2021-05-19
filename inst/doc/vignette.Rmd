@@ -139,7 +139,7 @@ data(example_seir_partab)
 means <- example_seir_partab$values
 names(means) <- example_seir_partab$names
 ## Set standard deviations of prior distribution
-sds_seir <- c("R0"=0.6,"obs_sd"=0.5,"viral_peak"=2,
+sds_seir <- c("obs_sd"=0.5,"viral_peak"=2,
          "wane_rate2"=1,"t_switch"=3,"level_switch"=1,
          "prob_detect"=0.03,
          "incubation"=0.25, "infectious"=0.5)
@@ -149,7 +149,6 @@ sds_seir <- c("R0"=0.6,"obs_sd"=0.5,"viral_peak"=2,
 prior_func_seir <- function(pars,...){
   ## Ct model priors
   obs_sd_prior <- dnorm(pars["obs_sd"], means[which(names(means) == "obs_sd")], sds_seir["obs_sd"],log=TRUE)
-  #r0_prior <- dlnorm(pars["R0"],log(2),sds_seir["R0"],log=TRUE)
   viral_peak_prior <- dnorm(pars["viral_peak"], means[which(names(means) == "viral_peak")], sds_seir["viral_peak"],log=TRUE)
   wane_2_prior <- dnorm(pars["wane_rate2"],means[which(names(means) == "wane_rate2")],sds_seir["wane_rate2"],log=TRUE)
   tswitch_prior <- dnorm(pars["t_switch"],means[which(names(means) == "t_switch")],sds_seir["t_switch"],log=TRUE)
@@ -168,7 +167,7 @@ prior_func_seir <- function(pars,...){
   ## Sum up
   obs_sd_prior + viral_peak_prior + 
     wane_2_prior + tswitch_prior + level_prior + beta_prior +
-    incu_prior + infectious_prior #+ r0_prior
+    incu_prior + infectious_prior
 }
 ```
 
@@ -195,10 +194,10 @@ posterior_func(example_seir_partab$values)
 ```
 
 ### 4.4 Estimating incidence from a single cross section
-We'll now demonstrate how to use `virosolver` to estimate an SEIR-generated incidence curve from a single-cross section of data. We'll use Ct values from the third sampling time, and then run the MCMC framework. The majority of Ct values are undetectable, so we'll just look at the distribution of Ct values below the limit of detection.
+We'll now demonstrate how to use `virosolver` to estimate an SEIR-generated incidence curve from a single-cross section of data. We'll use Ct values from the fifth sampling time, and then run the MCMC framework. This timepoint was chosen as the posterior distribution is unimodal -- if you use timepoints with multi-modal posteriors, you'll need to use the parallel tempering branch of `lazymcmc`. The majority of Ct values are undetectable, so we'll just look at the distribution of Ct values below the limit of detection.
 ```{r, dpi=100,fig.width=6,height=3}
-## Filter to Ct values on day 83 (third timepoint)
-ct_data_use <- example_ct_data %>% filter(t == 83)
+## Filter to Ct values on day 111 (fifth timepoint)
+ct_data_use <- example_ct_data %>% filter(t == 111)
 p_ct_use <- ggplot(ct_data_use %>% filter(ct < 40)) + geom_histogram(aes(x=ct)) + theme_bw()
 p_ct_use
 ```
@@ -287,7 +286,7 @@ predictions <- plot_prob_infection(chain_comb,
                                   solve_times=0:max(ct_data_use$t),
                                    obs_dat=ct_data_use,
                                   true_prob_infection=example_seir_incidence)
-p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
+p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,200))
 p_incidence_prediction
 ```
 
@@ -345,7 +344,7 @@ p_gr <- ggplot(trajs1_quants) +
   coord_cartesian(ylim=c(-0.5,0.5)) +
   scale_color_manual(name="",values=c("Posterior median"="black","True value"="blue","Sample time"="red")) +
   scale_fill_manual(name="",values=c("95% CrI"="gray40")) +
-  scale_x_continuous(limits=c(0,150)) +
+  scale_x_continuous(limits=c(0,200)) +
   ylab("Estimated growth rate") +
   xlab("Time") +
   theme_bw()
@@ -364,7 +363,7 @@ p_rt <- ggplot(Rt_quants) +
   geom_vline(data=tibble(x=unique(ct_data_use$t)),aes(col="Sample time",xintercept=x),linetype="dashed") +
   scale_color_manual(name="",values=c("Posterior median"="black","True value"="blue","Sample time"="red")) +
   scale_fill_manual(name="",values=c("95% CrI"="gray40")) +
-  scale_x_continuous(limits=c(0,150)) +
+  scale_x_continuous(limits=c(0,200)) +
   ylab("Rt") +
   xlab("Time") +
   theme_bw()
@@ -460,7 +459,7 @@ posterior_function(par_tab$values)
 ```
 
 We're now ready to solve the full Gaussian Process prior model. This is going to take quite a lot longer than the single cross section SEIR model, as there is far more data and the model solve time is longer. This may take a couple hours to run sufficiently long chains.
-```{r,eval=TRUE}
+```{r,eval=FALSE}
 dir.create("mcmc_chains/readme_multiple_cross_section",recursive=TRUE)
 ##################################
 ## RUN THE MCMC FRAMEWORK
@@ -532,7 +531,7 @@ predictions <- plot_prob_infection(chain_comb,nsamps=100, INCIDENCE_FUNC=inciden
                                   solve_times=0:max(example_ct_data$t),obs_dat=example_ct_data,
                                   true_prob_infection=example_seir_incidence,
                                   smooth=TRUE) ## Smooth the trajectories a bit
-p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
+p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,200))
 p_incidence_prediction
 ```
 

@@ -170,7 +170,7 @@ data(example_seir_incidence)
 predictions <- plot_prob_infection(chain,nsamps=200, INCIDENCE_FUNC=gaussian_process_model,
                                   solve_times=0:max(example_ct_data$t),obs_dat=example_ct_data,
                                   true_prob_infection=example_seir_incidence,smooth=TRUE)
-p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
+p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,185))
 p_incidence_prediction
 ```
 
