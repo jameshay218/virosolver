@@ -222,7 +222,7 @@ mcmc_pars <- c("iterations"=200000,"popt"=0.234,"opt_freq"=2000,
 ```
 
 This is where the magic happens: `run_MCMC` takes in all of the objects we've set up and runs the full MCMC procedure.
-```{r,echo=TRUE,eval=FALSE}
+```{r,echo=TRUE,eval=TRUE}
 dir.create("mcmc_chains/readme_single_cross_section",recursive=TRUE)
 
 ##################################
@@ -460,7 +460,7 @@ posterior_function(par_tab$values)
 ```
 
 We're now ready to solve the full Gaussian Process prior model. This is going to take quite a lot longer than the single cross section SEIR model, as there is far more data and the model solve time is longer. This may take a couple hours to run sufficiently long chains.
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 dir.create("mcmc_chains/readme_multiple_cross_section",recursive=TRUE)
 ##################################
 ## RUN THE MCMC FRAMEWORK

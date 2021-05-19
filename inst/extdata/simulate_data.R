@@ -31,7 +31,7 @@ setwd(MAIN_WD)
 ## Model parameters
 #example_seir_partab <- read.csv("~/Documents/GitHub/virosolver_paper/pars/massachusetts/partab_seir_model.csv")
 #example_seir_partab[example_seir_partab$names == "I0","values"] <- 1/10000
-#example_seir_partab[example_seir_partab$names == "R0","values"] <- 1.8
+#example_seir_partab[example_seir_partab$names == "R0","values"] <- 2
 #save(example_seir_partab,file="~/Documents/GitHub/virosolver/data/example_seir_partab.RData")
 data(example_seir_partab)
 pars <- example_seir_partab$values
@@ -100,7 +100,7 @@ sample_probs <- c(rep(0, sampling_frequency-1),sampling_number/population_n)
 sample_probs <- rep(sample_probs, length(times)/sampling_frequency +1)
 sample_probs <- sample_probs[1:length(times)]
 frac_report <- tibble(t=times,prob=sample_probs)
-frac_report <- frac_report %>% filter(t >= 50 & t <= 150)
+frac_report <- frac_report %>% filter(t >= 50 & t <= 200)
 
 ## frac_report is a table, giving the proportion (prob) of the population
 ## sampled on day t
