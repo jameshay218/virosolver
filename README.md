@@ -69,14 +69,6 @@ First, setup up all of the libraries and attach the example data.
 library(virosolver)
 library(lazymcmc)
 library(tidyverse)
-## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
-## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-## ✓ tibble  3.0.3     ✓ dplyr   1.0.2
-## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
-## ✓ readr   1.3.1     ✓ forcats 0.5.0
-## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()
 library(ggplot2)
 
 ## Attach simulated data
@@ -146,7 +138,7 @@ prior_func_gp <- function(pars, ...){
 
 ## MCMC chain options
 mcmc_pars <- c("iterations"=200000,"popt"=0.44,"opt_freq"=2000,
-                    "thin"=100,"adaptive_period"=100000,"save_block"=100)
+                    "thin"=100,"adaptive_period"=100000,"save_block"=1000)
 ```
 
 Run the MCMC framework.
@@ -172,19 +164,12 @@ from the simulated data. In practice you should run multiple chains and
 check for convergence, as in the vignette.
 
 ``` r
-################################################
-## READ IN CHAIN AND PLOT ESTIMATED INCIDENCE CURVE
-################################################
 chain <- read.csv("example_univariate_chain.csv")
-#chain <- chain[chain$sampno > mcmc_pars["adaptive_period"],]
+chain <- chain[chain$sampno > mcmc_pars["adaptive_period"],]
 data(example_seir_incidence)
-predictions <- plot_prob_infection(chain, 
-                                   nsamps=100, 
-                                   INCIDENCE_FUNC=gaussian_process_model,
-                                  solve_times=0:max(example_ct_data$t),
-                                   obs_dat=example_ct_data,
-                                  true_prob_infection=example_seir_incidence,
-                                  smooth=TRUE) ## Smooth the trajectories a bit
+predictions <- plot_prob_infection(chain,nsamps=100, INCIDENCE_FUNC=gaussian_process_model,
+                                  solve_times=0:max(example_ct_data$t),obs_dat=example_ct_data,
+                                  true_prob_infection=example_seir_incidence,smooth=TRUE)
 p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
 p_incidence_prediction
 ```

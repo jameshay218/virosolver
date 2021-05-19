@@ -40,7 +40,7 @@ The best way to get started is to **read the accompanying vignette**, which take
 Below is a snippet of code providing the absolute minimum R calls needed to get the MCMC framework up and running. I would *strongly* advise that you use the vignette instead and read the accompanying [paper](https://doi.org/10.1101/2020.10.08.20204222) to avoid making early mistakes or getting started with flawed assumptions.
 
 First, setup up all of the libraries and attach the example data.
-```{r,eval=TRUE}
+```{r,eval=TRUE,message=FALSE}
 library(virosolver)
 library(lazymcmc)
 library(tidyverse)
@@ -136,13 +136,9 @@ Finally, read in the MCMC chain and use a pre-built function to compare the esti
 chain <- read.csv("example_univariate_chain.csv")
 chain <- chain[chain$sampno > mcmc_pars["adaptive_period"],]
 data(example_seir_incidence)
-predictions <- plot_prob_infection(chain, 
-                                   nsamps=100, 
-                                   INCIDENCE_FUNC=gaussian_process_model,
-                                  solve_times=0:max(example_ct_data$t),
-                                   obs_dat=example_ct_data,
-                                  true_prob_infection=example_seir_incidence,
-                                  smooth=TRUE) ## Smooth the trajectories a bit
+predictions <- plot_prob_infection(chain,nsamps=100, INCIDENCE_FUNC=gaussian_process_model,
+                                  solve_times=0:max(example_ct_data$t),obs_dat=example_ct_data,
+                                  true_prob_infection=example_seir_incidence,smooth=TRUE)
 p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,150))
 p_incidence_prediction
 ```
