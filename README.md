@@ -27,13 +27,15 @@ MCMC procedure. This is easy to do with
 `devtools::install_github("jameshay218/lazymcmc")`. *However*, for many
 analyses where multi-modal posteriors are suspected, a separate branch
 implementing parallel tempering is needed. I’d recommend you set this up
-as follows: - Install the `lazymcmc` base package using
-`devtools::install_github("jameshay218/lazymcmc")` as above. Any time
-this version is used, `library(lazymcmc)` is called. - Clone the
-`parallel_tempering` branch from
-[here](https://github.com/jameshay218/lazymcmc/tree/parallel_tempering).
-Whenever this version is needed, then `devtools::load_all("PATH TO
-LAZYMCMC PARALLEL TEMPERING REPO")` is called instead.
+as follows:
+
+  - Install the `lazymcmc` base package using
+    `devtools::install_github("jameshay218/lazymcmc")` as above. Any
+    time this version is used, `library(lazymcmc)` is called.
+  - Clone the `parallel_tempering` branch from
+    [here](https://github.com/jameshay218/lazymcmc/tree/parallel_tempering).
+    Whenever this version is needed, then `devtools::load_all("PATH TO
+    LAZYMCMC PARALLEL TEMPERING REPO")` is called instead.
 
 It is possible to install the parallel tempering branch directly with
 `devtools::install_github("jameshay218/lazymcmc@parallel_tempering")`,
