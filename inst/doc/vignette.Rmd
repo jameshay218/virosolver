@@ -294,7 +294,7 @@ p_incidence_prediction
 It's also a good idea to check things like the estimated daily growth rate and time-varying reproductive number. A bit more computation is involved here, but the key is to check our estimated predictions against the true values.
 ```{r,echo=FALSE, dpi=100,fig.width=7,fig.height=6}
 ## Get smoothed growth rates
-samps <- sample(unique(chain_comb$sampno),1000)
+samps <- sample(unique(chain_comb$sampno),100)
 dat_inc <- NULL 
 solve_times <- 0:250
 for(ii in seq_along(samps)){
@@ -388,8 +388,8 @@ Note that we set the `incidence_function` pointer to `gaussian_process_model` he
 
 ```{r}
 ## MCMC chain options
-mcmc_pars <- c("iterations"=200000,"popt"=0.44,"opt_freq"=2000,
-                    "thin"=1000,"adaptive_period"=100000,"save_block"=1000)
+mcmc_pars <- c("iterations"=500000,"popt"=0.44,"opt_freq"=2000,
+                    "thin"=2500,"adaptive_period"=200000,"save_block"=100)
 
 ## Set pointer to the Gaussian Process model as the incidence function
 incidence_function <- gaussian_process_model
