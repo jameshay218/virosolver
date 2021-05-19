@@ -218,7 +218,7 @@ Depending on the MCMC settings we wish to use (see the `lazymcmc` documentation)
 covMat <- diag(nrow(start_tab))
 mvrPars <- list(covMat,2.38/sqrt(nrow(start_tab[start_tab$fixed==0,])),w=0.8)
 mcmc_pars <- c("iterations"=200000,"popt"=0.234,"opt_freq"=2000,
-                    "thin"=1000,"adaptive_period"=100000,"save_block"=1000)
+                    "thin"=1000,"adaptive_period"=100000,"save_block"=100)
 ```
 
 This is where the magic happens: `run_MCMC` takes in all of the objects we've set up and runs the full MCMC procedure.

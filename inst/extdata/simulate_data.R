@@ -16,11 +16,13 @@ library(odin) ## install from CRAN
 library(doParallel)
 library(fitdistrplus)
 library(virosolver) ## install from devtools::install_github("jameshay218/virosolver")
-devtools::load_all("~/Documents/GitHub/virosolver")
+
+set.seed(1)
+
 HOME_WD <- "~/Documents/GitHub/"
 
 ## Where to perform the simulations
-MAIN_WD <- paste0(HOME_WD,"/virosolver/man/inst/extdata")
+MAIN_WD <- paste0(HOME_WD,"/virosolver/inst/extdata")
 setwd(MAIN_WD)
 
 ########################################
@@ -97,7 +99,7 @@ sample_probs <- c(rep(0, sampling_frequency-1),sampling_number/population_n)
 sample_probs <- rep(sample_probs, length(times)/sampling_frequency +1)
 sample_probs <- sample_probs[1:length(times)]
 frac_report <- tibble(t=times,prob=sample_probs)
-frac_report <- frac_report %>% filter(t >= 50 & t <= 160)
+frac_report <- frac_report %>% filter(t >= 50 & t <= 150)
 
 ## frac_report is a table, giving the proportion (prob) of the population
 ## sampled on day t
