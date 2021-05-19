@@ -35,7 +35,7 @@ By capturing this logic in a mathematical model, we can obtain a probabilistic e
 To summarize, the key idea is that you can estimate incidence based on cross-sections of observed Ct values. This case study explores the application of `virosolver` to SARS-CoV-2 surveillance. A full explanation can be found in the accompanying [paper](https://doi.org/10.1101/2020.10.08.20204222).
 
 ## 2. Data
-`virosolver` expects a data frame as input data in long format, where each row corresponds to one tested sample. There should be one column labeled `t`, giving the time in days a sample was taken, and one column labeled `ct`, giving the Ct value of that tested sample. Note that Ct values are semi-quantitative and their scale depends on the platform/instrument used. It is assumed that all Ct values within the data frame are on the same scale and therefore internally consistent across time points.
+`virosolver` expects a data frame as input data in long format, where each row corresponds to one tested sample. There should be one column labeled `t`, giving the time in days a sample was taken, and one column labeled `ct`, giving the Ct value of that tested sample. Note that Ct values are semi-quantitative and their scale depends on the platform/instrument used. It is assumed that all Ct values within the data frame are on the same scale and therefore internally consistent across time points. For this simulation, we assume that 1000 random samples are obtained every 2 weeks, starting from day 55.
 ```{r, eval=TRUE}
 data(example_ct_data)
 print(head(example_ct_data %>% filter(ct < 40)))
@@ -221,7 +221,7 @@ mcmc_pars <- c("iterations"=200000,"popt"=0.234,"opt_freq"=2000,
 ```
 
 This is where the magic happens: `run_MCMC` takes in all of the objects we've set up and runs the full MCMC procedure.
-```{r,echo=TRUE,eval=TRUE}
+```{r,echo=TRUE,eval=FALSE}
 dir.create("mcmc_chains/readme_single_cross_section",recursive=TRUE)
 
 ##################################
