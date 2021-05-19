@@ -132,7 +132,7 @@ print(output$file)
 ```
 
 Finally, read in the MCMC chain and use a pre-built function to compare the estimated incidence curve to the true incidence curve (blue line) from the simulated data. In practice you should run multiple chains and check for convergence, as in the vignette.
-```{r,eval=TRUE}
+```{r,eval=TRUE,dpi=100,fig.height=4,fig.width=7}
 chain <- read.csv("example_univariate_chain.csv")
 chain <- chain[chain$sampno > mcmc_pars["adaptive_period"],]
 data(example_seir_incidence)
