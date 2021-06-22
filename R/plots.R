@@ -1,4 +1,5 @@
 #' @export
+#' 
 plot_prob_infection <- function(chain,
                                 nsamps,
                                 INCIDENCE_FUNC,
