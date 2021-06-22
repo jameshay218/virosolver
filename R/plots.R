@@ -179,6 +179,7 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
     xlab("Ct value") +
     ylab("Count") +
     facet_wrap(~t,nrow=1,scales="free_x") +
+    ## Style/Formatting 
     theme_classic() +
     theme(panel.grid.major = element_line(color="grey80",size=0.25),
           panel.grid.minor = element_line(color="grey80",size=0.25),
@@ -193,19 +194,27 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
     summarize(lower=quantile(density,0.025),
               median=quantile(density,0.5),
               upper=quantile(density,0.975))
-
+  
+  ## Prepare data to plot the proportion of detectable Ct values 
   p2 <-  ggplot(obs_dat %>%
                   group_by(t) %>%
                   mutate(is_detectable=ct < best_pars["intercept"]) %>%
                   summarize(prop_detectable=sum(is_detectable)/n()))
+  
+  ## pos_only flag uses only Ct values below the limit of detection (FIX ME: include actual limit?)
   if(!pos_only){
   p2 <- p2 +
+    ## Plot proportion of detectable Ct values at t = 0.25 
     geom_point(aes(y=prop_detectable,x=0.25,col="Data"),size=3,shape=18)
   }
+  
+  ## Plot the proportion of detectable Ct values for positive and negative test results
   p2 <- p2 +
     geom_point(data=summary_prop_detectable,aes(x=0.75,y=median,col="Posterior median & 95% CI"),size=1) +
+    ## Plot 95% CI 
     geom_errorbar(data=summary_prop_detectable,aes(x=0.75,ymin=lower,ymax=upper),
                   width=0.1, col="blue") +
+    ## FIX ME : Is this line needed? 
     #geom_point(data=best_dat %>%filter(ct==best_pars["intercept"]) %>%mutate(density = 1-density),aes(x=0.5,y=density,col="MAP"),size=1) +
     scale_y_continuous(limits=c(0,1)) +
     scale_x_continuous(limits=c(0,1)) +
@@ -216,6 +225,7 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
     facet_wrap(~t,nrow=1) +
     ylab("Proportion detectable") +
     xlab("Sample time") +
+    ## Style/Formatting
     theme_classic() +
     theme(panel.grid.major = element_line(color="grey80",size=0.25),
           panel.grid.minor = element_line(color="grey80",size=0.25),
@@ -226,12 +236,17 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
           legend.position="none",
           axis.ticks.x=element_blank()) +
     ggtitle("Fit to proportion detectable")
-    p1  /p2
+    ## Lay out the plots using the R package "patchwork"
+    return(p1/p2)
 }
 #' @export
+
+## Plot posterior density from model output 
 plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd, real_data=FALSE){
   p <- ggplot(chain) +
+    ## Plot density from MCMC chain (posterior distribution)
     geom_density(aes_string(var_name),fill="red",alpha=0.25) +
+    ## Plot a normal function on top using the prior distribution 
     stat_function(data=data.frame(x=c(parTab[parTab$names == var_name,"lower_bound"],
                                       parTab[parTab$names == var_name,"upper_bound"])),
                   aes(x),col="blue",
@@ -239,10 +254,11 @@ plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd
     scale_y_continuous(expand=c(0,0)) +
     ylab("Density") +
     theme_classic()
+  ## Plot true parameter value used to simulate the data 
   if(!real_data){
    p <- p +
      geom_vline(xintercept=parTab[parTab$names == var_name,"values"], linetype="dashed")
   }
-  p
+  return(p)
 }
 
