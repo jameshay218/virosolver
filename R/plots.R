@@ -167,8 +167,31 @@ predicted_distribution_fits <- function(chain, MODEL_FUNC, nsamps=100){
   return(posterior_dat)
 }
 
+#' Plot distribution fits 
+#' 
+#' Plot predicted Ct distribution fits from model
+#' 
+#' @param chain A dataframe containing the MCMC samples 
+#' @param obs_dat A dataframe containing observed Ct values and time of sample 
+#' collection. NULL by default.
+#' @param MODEL_FUNC Function that expects a vector of model parameters with names 
+#' corresponding to the parameter control table and returns a single log posterior probability
+#' @param nsamps Number of samples. Defaults to 100.  
+#' @param pos_only pos_only flag uses only Ct values below the limit of detection. Defaults to TRUE.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family plots 
+#' 
+#' @return Returns two stacked ggplots. 
+#' 
+#' @example
+#' \dontrun {
+#' model_func_gp <- create_posterior_func(par_tab,example_ct_data,NULL,incidence_function,"model")
+#' p_distribution_fit_gp <- plot_distribution_fits(chain_comb, example_ct_data, model_func_gp,100,pos_only=FALSE)
+#' }
+#' 
 #' @export
-## Plot predicted Ct distribution fits from model
+
 plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_only=TRUE){
   
   ## Obtain predicted Ct distribution fits from model
@@ -258,7 +281,7 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
                   mutate(is_detectable=ct < best_pars["intercept"]) %>%
                   summarize(prop_detectable=sum(is_detectable)/n()))
   
-  ## pos_only flag uses only Ct values below the limit of detection (FIX ME: include actual limit?)
+  ## pos_only flag uses only Ct values below the limit of detection
   if(!pos_only){
   p2 <- p2 +
     ## Plot proportion of detectable Ct values at t = 0.25 
@@ -294,9 +317,39 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
     ## Lay out the plots using the R package "patchwork"
     return(p1/p2)
 }
+
+#' Plot posterior density
+#'
+#' Plot posterior density from model output 
+#' 
+#' @param chain 
+#' @param var_name Character string denoting variable name from parameter table. 
+#' @param parTab Dataframe specifying prior distribution for model parameter.
+#' @param prior_mean Mean of the prior distribution for a particular parameter. 
+#' @param prior_sd Standard deviation of the prior distribution for a particular parameter. 
+#' @param real_data Plot true parameter values to simulate the data. Defaults to FALSE. 
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family plot
+#' 
+#' @return ggplot
+#' 
+#' @example 
+#' data(example_seir_partab)
+#' chains <- load_mcmc_chains(location="mcmc_chains/readme_multiple_cross_section/",
+#' parTab=par_tab,
+#' burnin=mcmc_pars["adaptive_period"],
+#' chainNo=FALSE,
+#' unfixed=FALSE,
+#' multi=FALSE)
+#' 
+#' var_name <- "tshift"
+#' prior_mean <- subset(example_seir_partab, names == "tshift")$values 
+#' prior_sd <- 0.2 
+#' plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd, real_data=FALSE)
+#' 
 #' @export
 
-## Plot posterior density from model output 
 plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd, real_data=FALSE){
   p <- ggplot(chain) +
     ## Plot density from MCMC chain (posterior distribution)
