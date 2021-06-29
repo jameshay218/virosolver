@@ -1,6 +1,40 @@
+#' Plot probability of infection
+#' 
+#' Plot probabilities of infection from compartmental model. Returns the probabilities and the plot.
+#' 
+#' @param chain A dataframe containing the MCMC samples 
+#' @param nsamps Number of samples
+#' @param INCIDENCE_FUNC A pointer to the Gaussian process model
+#' @param solve_times Vector indicating the time over which the model is solved
+#' @param obs_dat A dataframe containing observed Ct values and time of sample 
+#' collection. NULL by default.
+#' @param true_prob_infection A dataframe from simulated data with two columns, 
+#' one for time and the other is the true probability of infection. 
+#' NULL by default.
+#' @param tshift Shift the solve times? Numeric, set to 0 by default
+#' @param smooth Smooth the model estimates for plotting? FALSE by default.
+#' 
+#' @return Return a list containing three things: 1. A dataframe of model predictions containing
+#' time, probability of infection, and sample number; 
+#' 2. A dataframe containing the maximum posterior probability of infection and time;
+#' 3. A ggplot showing the probabilities of infection
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family plots 
+#' 
+#' @example
+#'data(example_seir_incidence)
+#'predictions <- plot_prob_infection(chain_comb, 
+#'                                  nsamps=100, 
+#'                                  INCIDENCE_FUNC=incidence_function,
+#'                                  solve_times=0:max(ct_data_use$t),
+#'                                  obs_dat=ct_data_use,
+#'                                  true_prob_infection=example_seir_incidence)
+#'p_incidence_prediction <- predictions$plot + scale_x_continuous(limits=c(0,200))
+#'p_incidence_prediction
+#' 
 #' @export
 
-## Plot probabilities of infection from compartmental model. Return the probabilities and the plot.
 plot_prob_infection <- function(chain,
                                 nsamps,
                                 INCIDENCE_FUNC,
@@ -79,16 +113,42 @@ plot_prob_infection <- function(chain,
   return(list(predictions=posterior_dat, map_prediction=best_prob_dat, plot=p1))
 }
 
+#' Predicted distribution fits
+#' 
+#' Obtain predicted Ct distribution fits from model (posterior_dat)
+#' 
+#' @param chain A dataframe containing the MCMC samples 
+#' @param MODEL_FUNC Function that expects a vector of model parameters with names 
+#' corresponding to the parameter control table and returns a single log posterior probability
+#' @param nsamps Number of samples. Defaults to 100.
+#' 
+#' @return Returns a dataframe containing the predictions from the posterior distribution.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family plots 
+#' 
+#' @example
+#' data(example_ct_data)
+#' data(example_seir_partab)
+#' 
+#' \dontrun{
+#'
+#' MODEL_FUNC <- create_posterior_func(parTab=example_seir_partab,
+#'                                      data=example_ct_data,
+#'                                      PRIOR_FUNC=prior_func_seir,
+#'                                      INCIDENCE_FUNC=incidence_function,
+#'                                      use_pos=FALSE) 
+#'                                      
+#' posterior_dat <- predicted_distribution_fits(chain, MODEL_FUNC, nsamps=100)                                   
+#' head(posterior_dat)
+#' }
+#' 
 #' @export
-## Obtain predicted Ct distribution fits from model (posterior_dat)
-predicted_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100){
+
+predicted_distribution_fits <- function(chain, MODEL_FUNC, nsamps=100){
   
   ## Return model parameters with highest likelihood
   best_pars <- lazymcmc::get_best_pars(chain)
-  
-  ## MODEL_FUNC comes from create_posterior_func. This line returns the Ct predictions.
-  ## FIX ME: best_dat is not currently plotted
-  best_dat <- MODEL_FUNC(best_pars)
 
   ## Generate posterior draws for Ct distribution prediction
   ## Take n samples from the MCMC chain
@@ -98,6 +158,7 @@ predicted_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100){
     samp <- samps[i]
     ## Return parameters for each sample according to sample number
     tmp_pars <- lazymcmc::get_index_pars(chain, samp)
+    ## MODEL_FUNC output of create_posterior_func
     all_res[[i]] <- MODEL_FUNC(tmp_pars) %>% mutate(sampno=i)
   }
   
@@ -168,12 +229,8 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
     geom_ribbon(data=summary_expectation,aes(x=ct+0.5,ymin=lower_expec,ymax=upper_expec),fill="blue",alpha=0.5)+
     # median for expected Ct values
     geom_line(data=summary_expectation,aes(x=ct+0.5,y=median_expec),col="blue") +
-    ## FIX ME: do we need the line below?
-    #geom_line(data=best_dat%>%group_by(t) %>%filter(ct < best_pars["intercept"]), aes(x=ct+0.5,y=density),col="green") +
     ## Reverse x-axis so Ct values decrease from high to low
     scale_x_continuous(trans="reverse",expand=c(0,0),limits=c(41,5),breaks=seq(0,40,by=5)) +
-    ## FIX ME: do we need the line below?
-    #scale_y_continuous(expand=c(0,0),limits=c(0,10),breaks=seq(0,10,by=2)) +
     coord_cartesian(xlim=c(0,39)) +
     coord_flip() +
     xlab("Ct value") +
@@ -214,8 +271,6 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
     ## Plot 95% CI 
     geom_errorbar(data=summary_prop_detectable,aes(x=0.75,ymin=lower,ymax=upper),
                   width=0.1, col="blue") +
-    ## FIX ME : Is this line needed? 
-    #geom_point(data=best_dat %>%filter(ct==best_pars["intercept"]) %>%mutate(density = 1-density),aes(x=0.5,y=density,col="MAP"),size=1) +
     scale_y_continuous(limits=c(0,1)) +
     scale_x_continuous(limits=c(0,1)) +
     scale_color_manual(values=c("Data"="grey40",
