@@ -22,7 +22,7 @@
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family plots 
 #' 
-#' @example
+#' @examples
 #'data(example_seir_incidence)
 #'predictions <- plot_prob_infection(chain_comb, 
 #'                                  nsamps=100, 
@@ -127,7 +127,7 @@ plot_prob_infection <- function(chain,
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family plots 
 #' 
-#' @example
+#' @examples
 #' data(example_ct_data)
 #' data(example_seir_partab)
 #' 
@@ -184,7 +184,7 @@ predicted_distribution_fits <- function(chain, MODEL_FUNC, nsamps=100){
 #' 
 #' @return Returns two stacked ggplots. 
 #' 
-#' @example
+#' @examples
 #' \dontrun {
 #' model_func_gp <- create_posterior_func(par_tab,example_ct_data,NULL,incidence_function,"model")
 #' p_distribution_fit_gp <- plot_distribution_fits(chain_comb, example_ct_data, model_func_gp,100,pos_only=FALSE)
@@ -334,7 +334,7 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
 #' 
 #' @return ggplot
 #' 
-#' @example 
+#' @examples
 #' data(example_seir_partab)
 #' chains <- load_mcmc_chains(location="mcmc_chains/readme_multiple_cross_section/",
 #' parTab=par_tab,
