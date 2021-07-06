@@ -1,4 +1,17 @@
 #' @export
+solveSEIRModel_lsoda_wrapper <- function(pars, times){
+  seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
+  init <- c(1-pars["I0"],0,pars["I0"],0,0)
+  inc <- c(rep(0, pars["t0"]),0,diff(
+    deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
+                 dllname="virosolver",initfunc="initmodSEIR",
+                 nout=0, rtol=1e-6,atol=1e-6)[,6]))[1:length(times)]
+  inc <- pmax(0, inc)
+  inc
+}
+
+
+#' @export
 solveSEIRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
   init <- c(1-pars["I0"],0,pars["I0"],0,0)
