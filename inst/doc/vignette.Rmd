@@ -4,7 +4,7 @@ output: rmarkdown::html_vignette
 ---
 
 ```{r setup, echo=FALSE}
-knitr::opts_chunk$set(eval=TRUE,collapse=TRUE,warning=FALSE,fig.path="figures/")
+knitr::opts_chunk$set(eval=TRUE,collapse=TRUE,warning=FALSE)
 ```
 
 This vignette exhaustively steps through the code, model checks and fitting prodecure to use `virosolver` to estimate incidence curves from simulated data. This code can be adapted for your own datasets by replacing the Ct data frame, here called `example_ct_data`. Note that for your own datasets, substantial callibration and checks are advised.
@@ -307,7 +307,7 @@ for(ii in seq_along(samps)){
   seir_pars <- c("beta"=pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
   names(seir_pars) <- c("beta","sigma","gamma")
   init <- c(1-pars["I0"],0,pars["I0"],0)
-  sol <- solveSEIRModel_lsoda(solve_times, init, seir_pars,compatible=TRUE)
+  sol <- solveSEIRModel_lsoda(solve_times, init, seir_pars)
   S_compartment <- c(rep(1, pars["t0"]),sol[,2])[1:length(solve_times)]
   tmp_inc$Rt <- S_compartment*unname(pars["R0"])
   tmp_inc$gr <- c(NaN,log(x[2:length(x)]/x[1:(length(x)-1)]))
