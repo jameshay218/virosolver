@@ -193,9 +193,11 @@ predicted_distribution_fits <- function(chain, MODEL_FUNC, nsamps=100){
 #' @export
 
 plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_only=TRUE){
+  ## Pull out MAP parameters from MCMC chain
+  best_pars <- get_best_pars(chain)
   
   ## Obtain predicted Ct distribution fits from model
-  posterior_dat <- predicted_distribution_fits(chain, obs_dat, MODEL_FUNC, nsamps)
+  posterior_dat <- predicted_distribution_fits(chain, MODEL_FUNC, nsamps)
   
   ## Make sure only plotting detectable Ct values, and get label
   obs_dat1 <- obs_dat %>%

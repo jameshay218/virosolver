@@ -126,6 +126,13 @@ reverse_gp_model <- function(desired_probs, pars, times){
 }
 
 
+#' @export
+solveSEIRModel_lsoda <- function(ts, init, pars,compatible=FALSE){
+  pars <- pars[c("beta","sigma","gamma")]
+  deSolve::ode(init, ts, func="SEIR_model_lsoda",parms=pars,
+               dllname="virosolver",initfunc="initmodSEIR",
+               nout=0, rtol=1e-6,atol=1e-6)
+}
 
 #' @export
 solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){

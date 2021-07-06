@@ -40,6 +40,18 @@
     <loc>/reference/p_a.html</loc>
   </url>
   <url>
+    <loc>/reference/plot_distribution_fits.html</loc>
+  </url>
+  <url>
+    <loc>/reference/plot_posterior_density.html</loc>
+  </url>
+  <url>
+    <loc>/reference/plot_prob_infection.html</loc>
+  </url>
+  <url>
+    <loc>/reference/predicted_distribution_fits.html</loc>
+  </url>
+  <url>
     <loc>/reference/prop_detectable_single.html</loc>
   </url>
   <url>
