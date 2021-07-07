@@ -16,6 +16,7 @@ double viral_load_func_single_cpp(double tshift,
                                   double obs_t,
                                   bool convert_vl);
 
+//' @export
 // [[Rcpp::export]]
 double dgumbel_jh(double x, double mu, double sigma){
   double a = (x-mu)/sigma;

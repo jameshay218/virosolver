@@ -15,3 +15,7 @@ C_SEIR_model_rlsoda <- NULL
   C_SEIR_model_lsoda <<- getNativeSymbolInfo("SEIR_model_lsoda", PACKAGE = "virosolver")
   C_initmodSEIR <<- getNativeSymbolInfo("initmodSEIR", PACKAGE = "virosolver")
 }
+
+.onUnload <- function (libpath) {
+  library.dynam.unload("virosolver", libpath)
+}

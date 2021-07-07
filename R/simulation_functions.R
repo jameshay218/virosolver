@@ -145,9 +145,11 @@ simulate_seir_process <- function(pars, times, N=1){
   init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0,0)
   
   ## Solve the SEIR model using the rlsoda package
-  sol <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
-                        deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
-  
+  #sol <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
+  #                      deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
+  sol <- deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
+                      dllname="virosolver",initfunc="initmodSEIR",
+                      nout=0, rtol=1e-6,atol=1e-6)
   
   ## Convert to data frame and column names
   sol <- as.data.frame(sol)
