@@ -1,16 +1,50 @@
+#' Wrapper function for the solveSEIRmodel_lsoda code, which is written in C. 
+#' 
+#' This function returns a vector of incidence values for given times 
+#' according to SEIR model parameters. This function utilizes lsoda, 
+#' a solver for ordinary differential equations. 
+#' 
+#' @param pars SEIR model parameters (dataframe)
+#' @param times Time points for incidence calculation
+#' 
+#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family incidence functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
-solveSEIRModel_lsoda_wrapper <- function(pars, times){
+solveSEIRModel_lsoda_wrapper <- function(pars, times){ 
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
+  ## Initialize values for ODE system
   init <- c(1-pars["I0"],0,pars["I0"],0,0)
+  ## Solve SEIR ordinary differential equations and calculate incidence for given time points
   inc <- c(rep(0, pars["t0"]),0,diff(
-    deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
+    deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars, 
                  dllname="virosolver",initfunc="initmodSEIR",
                  nout=0, rtol=1e-6,atol=1e-6)[,6]))[1:length(times)]
-  inc <- pmax(0, inc)
+
+  inc <- pmax(0, inc) ##FIX ME,  why restrict to positive values?  
   inc
 }
 
-
+#' Wrapper function for the solveSEIRmodel_rlsoda code, which is written in C. 
+#' 
+#' This function returns a vector of incidence values for given times 
+#' according to SEIR model parameters. This function utilizes rlsoda, 
+#' a solver for ordinary differential equations. 
+#' 
+#' @param pars SEIR model parameters (dataframe)
+#' @param times Time points for incidence calculation
+#' 
+#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family incidence functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
 solveSEIRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
@@ -21,6 +55,24 @@ solveSEIRModel_rlsoda_wrapper <- function(pars, times){
   inc
 }
 
+#' Wrapper function for the solveSEIRswitch_rlsoda code, which is written in C. 
+#' 
+#' This function returns a vector of incidence values for given times 
+#' according to SEIR model parameters. This function takes into account 
+#' models in which R0 changes with time. 
+#' 
+#' This function utilizes rlsoda, a solver for ordinary differential equations. 
+#' 
+#' @param pars SEIR model parameters (dataframe)
+#' @param times Time points for incidence calculation
+#' 
+#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family incidence functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
 solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0_1"]*(1/pars["infectious"]),
@@ -34,7 +86,24 @@ solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
   inc <- pmax(0, inc)
   inc
 }
-
+#' Wrapper function for the solveSEIRRModel_rlsoda code, which is written in C. 
+#' 
+#' This function returns a vector of incidence values for given times 
+#' according to SEIRR model parameters. The SEIRR model categorizes the
+#' "Recovered" population as either detectable or not detectable (FIXME: immune?)
+#' 
+#' This function utilizes rlsoda, a solver for ordinary differential equations. 
+#' 
+#' @param pars SEIRR model parameters (dataframe)
+#' @param times Time points for incidence calculation
+#' 
+#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family incidence functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
 solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
@@ -45,6 +114,23 @@ solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
   inc
 }
 
+
+#' This function returns a vector of prevalence values for given times 
+#' according to SEEIRR model parameters. 
+#' 
+#' This function utilizes C_SEEIRR_model_rlsoda, a function included 
+#' in the virosolver that is written in C (code can be found in /src/)
+#' and rlsoda, a solver for ordinary differential equations. 
+#' 
+#' @param pars SEEIRR model parameters (dataframe)
+#' @param times Time points for prevalence calculation (FIXME: prevalence??)
+#' 
+#' @return Returns prevalence values for time points passed in via the 'times' parameter.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family incidence functions
+#' 
+#' @examples FIX ME
 #' @export
 detectable_SEEIRRModel <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
