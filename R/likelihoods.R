@@ -181,6 +181,7 @@ likelihood_detectable <- function(obs_dat, ages, pars, prob_infection){
 
 p_a <- function(x, a, pars, viral_loads, sd_mod) {
   viral_load_sd <- pars["obs_sd"]*sd_mod[a]
+  ## The intercept is the maximum number of cycles run on the PCR machine
   LOD <- pars["intercept"]
   
   renormalize <- extraDistr::pgumbel(LOD, viral_loads[a],viral_load_sd,lower.tail=TRUE) -
@@ -368,6 +369,7 @@ likelihood_R <- function(obs_dat, ages, pars, prob_infection){
 #' @export
 
 likelihood_pos_R <- function(obs_dat, ages, pars, prob_infection){
+  ## The intercept is the maximum number of cycles run on the PCR machine
   LOD <- pars["intercept"]
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
 

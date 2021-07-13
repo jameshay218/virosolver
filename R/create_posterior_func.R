@@ -23,13 +23,13 @@
 #' 
 #' @examples
 #' incidence_function <- solveSEIRModel_lsoda_wrapper
-#'data(example_seir_partab)
-#'posterior_func <- create_posterior_func(parTab=example_seir_partab,
+#' data(example_seir_partab)
+#' posterior_func <- create_posterior_func(parTab=example_seir_partab,
 #'                                        data=example_ct_data,
 #'                                        PRIOR_FUNC=prior_func_seir,
 #'                                        INCIDENCE_FUNC=incidence_function,
 #'                                        use_pos=FALSE) ## Important argument, see text
-#'posterior_func(example_seir_partab$values)
+#' posterior_func(example_seir_partab$values)
 #' 
 #' @export
 
