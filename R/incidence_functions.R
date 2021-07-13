@@ -31,7 +31,9 @@ solveSEIRModel_lsoda_wrapper <- function(pars, times){
 #' Wrapper function for the solveSEIRmodel_rlsoda code, which is written in C. 
 #' 
 #' This function returns a vector of incidence values for given times 
-#' according to SEIR model parameters. 
+#' according to SEIR model parameters. Note that rlsoda solves the model faster than lsoda
+#' from the deSolve package but is not available on CRAN and must be downloaded manually 
+#' from GitHub.
 #' 
 #' @param pars  Vector of labeled SEIR model parameters.
 #' @param times Time points for incidence calculation.
@@ -60,8 +62,9 @@ solveSEIRModel_rlsoda_wrapper <- function(pars, times){
 #' 
 #' This function returns a vector of incidence values for given times 
 #' according to SEIR model parameters. This function takes into account 
-#' models in which R0 changes over time. 
-#' 
+#' models in which R0 changes over time. Note that rlsoda solves the model faster than lsoda
+#' from the deSolve package but is not available on CRAN and must be downloaded manually 
+#' from GitHub.
 #' 
 #' @param pars Vector of labeled SEIR model parameters.
 #' @param times Time points for incidence calculation.
@@ -93,9 +96,8 @@ solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
 #' Wrapper function for the solveSEIRRModel_rlsoda code, which is written in C. 
 #' 
 #' This function returns a vector of incidence values for given times 
-#' according to SEIRR model parameters.
-#' 
-#' This function utilizes rlsoda, a solver for ordinary differential equations. 
+#' according to SEIRR model parameters. It utilizes rlsoda, a solver for ordinary 
+#' differential equations but is not available on CRAN.
 #' 
 #' @param pars Vector of labeled SEEIRR model parameters.
 #' @param times Time points for incidence calculation.
@@ -121,11 +123,12 @@ solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
 }
 
 
+#' Detectable SEEIRR model
+#' 
 #' This function returns a vector of detectable prevalence 
 #' values for given times according to SEEIRR model parameters. 
-#' 
-#' This function utilizes C_SEEIRR_model_rlsoda, a function included 
-#' in the virosolver that is written in C (code can be found in /src/)
+#' It utilizes C_SEEIRR_model_rlsoda, a function included 
+#' in the virosolver package that is written in C (code can be found in /src/)
 #' and rlsoda, a solver for ordinary differential equations. 
 #' 
 #' @param pars Vector of labeled SEEIRR model parameters.
@@ -137,6 +140,7 @@ solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 detectable_SEEIRRModel <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
@@ -152,6 +156,8 @@ detectable_SEEIRRModel <- function(pars, times){
 }
 
 
+#' SEEIRR Model
+#' 
 #' This function returns a dataframe containing the values solved for  
 #' using the SEEIRR differential equation set.
 #' 
@@ -164,6 +170,7 @@ detectable_SEEIRRModel <- function(pars, times){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 SEEIRRModel <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
@@ -183,6 +190,8 @@ SEEIRRModel <- function(pars, times){
   y_end
 }
 
+#' Exponential growth model
+#' 
 #' This function returns incidence for given times 
 #' using the exponential growth model. 
 #' 
@@ -195,8 +204,10 @@ SEEIRRModel <- function(pars, times){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 exponential_growth_model <- function(pars, times){
+  ## Model parameters
   overall_prob <- pars["overall_prob"]
   beta <- pars["beta"]
 
@@ -206,6 +217,8 @@ exponential_growth_model <- function(pars, times){
   prob_infection_tmp
 }
 
+#' Gaussian process model
+#' 
 #' This function returns incidence for given times 
 #' using the Gaussian process model. 
 #' 
@@ -218,21 +231,28 @@ exponential_growth_model <- function(pars, times){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 gaussian_process_model <- function(pars, times){
+  ## Model parameters
   par_names <- names(pars)
   use_names <- c("prob",paste0("prob.",1:length(times)))
   overall_prob <- pars["overall_prob"]
   k <- pars[which(par_names%in%use_names)]
 
+  ## Create a matrix of times
   mat <- matrix(rep(times, each=length(times)),ncol=length(times))
+  ## Subtract times from the columns of matrix mat and take the absolute value
   t_dist <- abs(apply(mat, 2, function(x) x-times))
-  mus <- rep(0, length(times))
+  
   nu <- pars["nu"]
   rho <- pars["rho"]
   K <- nu^2 * exp(-rho^2 * t_dist^2)
+  ## Add 0.01 to the diagonal of K
   diag(K) <- diag(K) + 0.01
+  ## Transpose the Choleski factorization of K
   L_K <- t(chol(K))
+  ## Matrix multiplication
   k1 <- (L_K %*% k)[,1]
   ps <- 1/(1+exp(-k1))
   ps <- ps/sum(ps)
@@ -241,6 +261,8 @@ gaussian_process_model <- function(pars, times){
   prob_infection_tmp
 }
 
+#' Reverse Gaussian process model
+#' 
 #' Given a vector of daily infection probabilities, 
 #' this function converts this vector to the format expected
 #' by the Gaussian process model.
@@ -256,25 +278,32 @@ gaussian_process_model <- function(pars, times){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
-reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review upderpinnings of this function
+reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review underpinnings of this function
   mat <- matrix(rep(times, each=length(times)),ncol=length(times))
   t_dist <- abs(apply(mat, 2, function(x) x-times))
+  
+  ## Model parameters
   nu <- pars["nu"]
   rho <- pars["rho"]
   K <- nu^2 * exp(-rho^2 * t_dist^2)
+  ## Add 0.01 to the diagonal of K
   diag(K) <- diag(K) + 0.01
+  ## Transpose the Choleski factorization of K
   L_K <- t(chol(K))
 
   ps <- sum(desired_probs)*desired_probs + 0.000000001
   ps <- pars["overall_prob"]*ps/sum(ps)
   k1 <- -log((1/ps) -1)
 
+  ## Solve the transpose of L_K and perform matrix multiplication with k1
   k_solve <- (k1 %*% solve(t(L_K)))[1,]
   k_solve
 }
 
-
+#' Solve SEIR Model with lsoda
+#' 
 #' This function solves the SEIR ODEs and returns
 #' a matrix of class deSolve.  
 #' 
@@ -289,16 +318,22 @@ reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review upder
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 solveSEIRModel_lsoda <- function(ts, init, pars,compatible=FALSE){
+  ## Model parameters
   pars <- pars[c("beta","sigma","gamma")] 
+  ## Solve SEIR model
   deSolve::ode(init, ts, func="SEIR_model_lsoda",parms=pars,
                dllname="virosolver",initfunc="initmodSEIR",
                nout=0, rtol=1e-6,atol=1e-6)
 }
 
+#' Solve SEIR model with rlsoda
+#' 
 #' This function solves the SEIR ODEs for a series of 
-#' time points and returns a matrix of the solved values.
+#' time points and returns a matrix of the solved values. It uses rlsoda
+#' which must be manually downloaded from GitHub.
 #' 
 #' @param ts Vector of time points.
 #' @param init Vector of initial conditions for system of equations.
@@ -314,18 +349,22 @@ solveSEIRModel_lsoda <- function(ts, init, pars,compatible=FALSE){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
+  ## Model parameters
   pars <- pars[c("beta","sigma","gamma")]
   ## Solves for SEIR ODEs
   rlsoda::rlsoda(init, ts, C_SEIR_model_rlsoda, parms=pars, dllname="virosolver",
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
 
+#' Solve SEIR switch model with rlsoda
+#' 
 #' This function solves the SEIR ODEs for a series of 
 #' time points and returns a matrix of the solved values.
-#'  
-#' This function takes into account models in which R0 changes with time.
+#' It takes into account models in which R0 changes with time. rlsoda
+#' must be manually downloaded from GitHub.
 #' 
 #' @param ts Vector of time points for incidence calculation.
 #' @param init Vector of labeled initial conditions for system of equations.
@@ -341,17 +380,21 @@ solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 solveSEIRswitch_rlsoda <- function(ts, init, pars,compatible=FALSE){
+  ## Model parameters
   pars <- pars[c("beta1","beta2","beta3","sigma","gamma","t_switch1","t_switch2")]
-  print(pars)
   ## Solves for SEIR ODEs
   rlsoda::rlsoda(init, ts, C_SEIR_switch_rlsoda, parms=pars, dllname="virosolver",
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
 
-#'  This function solves the SEEIRR ODEs for a series of 
-#' time points and returns a matrix of the solved values.
+#' Solve SEEIRR model with rlsoda
+#' 
+#' This function solves the SEEIRR ODEs for a series of 
+#' time points and returns a matrix of the solved values. rlsoda
+#' must be manually downloaded from GitHub.
 #' 
 #' @param ts Vector of time points for incidence calculation.
 #' @param init Vector of labeled initial conditions for system of equations. 
@@ -367,14 +410,18 @@ solveSEIRswitch_rlsoda <- function(ts, init, pars,compatible=FALSE){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 solveSEEIRRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
+  ## Model parameters
   pars <- pars[c("beta","sigma","alpha","gamma","omega")]
   ## Solves for SEIR ODEs
   rlsoda::rlsoda(init, ts, C_SEEIRR_model_rlsoda, parms=pars, dllname="virosolver",
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
 
+#' Detectable SEIR model
+#' 
 #' This function solves the SEIR ODEs for a 
 #' series of time points and returns a vector 
 #' of detectable prevalence values.
@@ -388,6 +435,7 @@ solveSEEIRRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
 #' @family incidence functions
 #' 
 #' @examples FIX ME
+#' 
 #' @export
 detectable_SEIRModel <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
