@@ -7,7 +7,7 @@ output: rmarkdown::html_vignette
 knitr::opts_chunk$set(eval=TRUE,collapse=TRUE,warning=FALSE)
 ```
 
-This vignette exhaustively steps through the code, model checks and fitting prodecure to use `virosolver` to estimate incidence curves from simulated data. This code can be adapted for your own datasets by replacing the Ct data frame, here called `example_ct_data`. Note that for your own datasets, substantial callibration and checks are advised.
+This vignette exhaustively steps through the code, model checks and fitting procedure to use `virosolver` to estimate incidence curves from simulated data. This code can be adapted for your own datasets by replacing the Ct data frame, here called `example_ct_data`. Note that for your own datasets, substantial calibration and checks are advised.
 
 ```{r,eval=TRUE,message=FALSE}
 library(virosolver)
