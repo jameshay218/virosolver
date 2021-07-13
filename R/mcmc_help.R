@@ -1,24 +1,24 @@
 #' Function to generate random starting parameter values that 
-#' return a finite likelihood
+#' return a finite likelihood.
 #' 
 #' This function is used to generate random starting values 
-#' for the MCMC procedure 
+#' for the MCMC procedure.
 #' 
 #' @param partab Dataframe containing parameters corresponding
-#' to underlying incidence model (e.g. SEIR, SEEIRR)
-#' @param obs_dat Dataframe containing observed Ct values
+#' to underlying incidence model (e.g. SEIR, SEEIRR).
+#' @param obs_dat Dataframe containing observed Ct values.
 #' @param CREATE_POSTERIOR_FUNC Creates the posterior function 
-#' used in the MCMC framework for detectable Ct values
+#' used in the MCMC framework for detectable Ct values.
 #' @param INCIDENCE_FUNC Function that expects a vector of named parameters 
-#' and returns a vector of daily incidence
+#' and returns a vector of daily incidence.
 #' @param PRIOR_FUNC Function that returns the log prior probability for a 
-#' given vector of parameter values given the prior means and sds
+#' given vector of parameter values given the prior means and sds.
 #' @param use_pos Boolean variable indicating if only positive Ct values
 #' i.e, those below a specified threshold,  should be used. Set to FALSE 
-#' by default
+#' by default.
 #' 
-#' @return dataframe containing random starting parameter values that return 
-#' a finite likelihood
+#' @return Dataframe containing random starting parameter values that return 
+#' a finite likelihood.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family mcmc help

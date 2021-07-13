@@ -1,13 +1,12 @@
 #' Wrapper function for the solveSEIRmodel_lsoda code, which is written in C. 
 #' 
 #' This function returns a vector of incidence values for given times 
-#' according to SEIR model parameters. This function utilizes lsoda, 
-#' a solver for ordinary differential equations. 
+#' according to SEIR model parameters. 
 #' 
-#' @param pars SEIR model parameters (dataframe)
-#' @param times Time points for incidence calculation
+#' @param pars Vector of labeled SEIR model parameters.
+#' @param times Time points for incidence calculation.
 #' 
-#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' @return Returns incidence values for given points in time.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -17,28 +16,27 @@
 #' @export
 solveSEIRModel_lsoda_wrapper <- function(pars, times){ 
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
-  ## Initialize values for ODE system
+  ## Initialize values for ODE solver
   init <- c(1-pars["I0"],0,pars["I0"],0,0)
   ## Solve SEIR ordinary differential equations and calculate incidence for given time points
   inc <- c(rep(0, pars["t0"]),0,diff(
     deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars, 
                  dllname="virosolver",initfunc="initmodSEIR",
                  nout=0, rtol=1e-6,atol=1e-6)[,6]))[1:length(times)]
-
-  inc <- pmax(0, inc) ##FIX ME,  why restrict to positive values?  
+  ## Set negative incidence values to 0
+  inc <- pmax(0, inc)   
   inc
 }
 
 #' Wrapper function for the solveSEIRmodel_rlsoda code, which is written in C. 
 #' 
 #' This function returns a vector of incidence values for given times 
-#' according to SEIR model parameters. This function utilizes rlsoda, 
-#' a solver for ordinary differential equations. 
+#' according to SEIR model parameters. 
 #' 
-#' @param pars SEIR model parameters (dataframe)
-#' @param times Time points for incidence calculation
+#' @param pars  Vector of labeled SEIR model parameters.
+#' @param times Time points for incidence calculation.
 #' 
-#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' @return Returns incidence values for given points in time.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -48,12 +46,12 @@ solveSEIRModel_lsoda_wrapper <- function(pars, times){
 #' @export
 solveSEIRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
-  ## Initialize values for ODE system
+  ## Initialize values for ODE solver
   init <- c(1-pars["I0"],0,pars["I0"],0,0)
   ## Solve SEIR ordinary differential equations and calculate incidence for given time points
   inc <- c(rep(0, pars["t0"]),0,diff(rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
                  deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)[6,]))[1:length(times)]
-  ## Removes negative values from  incidence vector
+  ## Set negative incidence values to 0
   inc <- pmax(0, inc)
   inc
 }
@@ -62,14 +60,13 @@ solveSEIRModel_rlsoda_wrapper <- function(pars, times){
 #' 
 #' This function returns a vector of incidence values for given times 
 #' according to SEIR model parameters. This function takes into account 
-#' models in which R0 changes with time. 
+#' models in which R0 changes over time. 
 #' 
-#' This function utilizes rlsoda, a solver for ordinary differential equations. 
 #' 
-#' @param pars SEIR model parameters (dataframe)
-#' @param times Time points for incidence calculation
+#' @param pars Vector of labeled SEIR model parameters.
+#' @param times Time points for incidence calculation.
 #' 
-#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' @return Returns incidence values for given points in time.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -83,12 +80,12 @@ solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
                  pars["R0_3"]*(1/pars["infectious"]),
                  1/pars["incubation"],1/pars["infectious"],
                  pars["t_switch1"], pars["t_switch2"])
-  ## Initialize values for ODE system
+  ## Initialize values for ODE solver
   init <- c(1-pars["I0"],0,pars["I0"],0,0)
   ## Solve SEIR ordinary differential equations and calculate incidence for given time points
   inc <- c(rep(0, pars["t0"]),0,diff(rlsoda::rlsoda(init, times, C_SEIR_switch_rlsoda, parms=seir_pars, dllname="virosolver",
                                                     deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)[6,]))[1:length(times)]
-  ## Removes negative values from  incidence vector
+  ## Set negative incidence values to 0
   inc <- pmax(0, inc)
   inc
 }
@@ -100,10 +97,10 @@ solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
 #' 
 #' This function utilizes rlsoda, a solver for ordinary differential equations. 
 #' 
-#' @param pars SEIRR model parameters (dataframe)
-#' @param times Time points for incidence calculation
+#' @param pars Vector of labeled SEEIRR model parameters.
+#' @param times Time points for incidence calculation.
 #' 
-#' @return Returns incidence values for time points passed in via the 'times' parameter.
+#' @return Returns incidence values for given points in time.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -113,12 +110,12 @@ solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
 #' @export
 solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["latent"],1/pars["incubation"],1/pars["infectious"],1/pars["recovery"])
-  ## Initialize values for ODE system
-  init <- c(1-pars["I0"],0,0,pars["I0"],0,0,0) ## FIXME : Why the additional 0's? seir_pars has 5, init has 7?
+  ## Initialize values for ODE solver
+  init <- c(1-pars["I0"],0,0,pars["I0"],0,0,0) 
   ## Solve SEEIRR ordinary differential equations and calculate incidence for given time points
   inc <- c(rep(0, pars["t0"]),0,diff(rlsoda::rlsoda(init, times, C_SEEIRR_model_rlsoda, parms=seir_pars, dllname="virosolver",
                                                     deSolve_compatible = FALSE,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)[8,]))[1:length(times)]
-  ## Removes negative values from  incidence vector
+  ## Set negative incidence values to 0
   inc <- pmax(0, inc)
   inc
 }
@@ -131,10 +128,10 @@ solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
 #' in the virosolver that is written in C (code can be found in /src/)
 #' and rlsoda, a solver for ordinary differential equations. 
 #' 
-#' @param pars SEEIRR model parameters (dataframe)
-#' @param times Time points for prevalence calculation (FIXME: prevalence??)
+#' @param pars Vector of labeled SEEIRR model parameters.
+#' @param times Time points for prevalence calculation.
 #' 
-#' @return Returns prevalence values for time points passed in via the 'times' parameter.
+#' @return Returns detectable prevalence values for given points in time.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -156,12 +153,12 @@ detectable_SEEIRRModel <- function(pars, times){
 
 
 #' This function returns a dataframe containing the values solved for  
-#' using the SEEIRR differential equation set
+#' using the SEEIRR differential equation set.
 #' 
-#' @param pars SEEIRR model parameters (dataframe)
-#' @param times Time points for prevalence calculation 
+#' @param pars Vector of labeled SEEIRR model parameters.
+#' @param times Vector of times points.
 #' 
-#' @return Returns dataframe of variables solved for using SEEIRR ODEs
+#' @return Returns dataframe of variables solved for using SEEIRR ODEs.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -181,7 +178,7 @@ SEEIRRModel <- function(pars, times){
   colnames(addition) <- colnames(y)
   addition$time <- 0:(floor(pars["t0"])-1)
   ## Attaches time column to dataframe
-  y_end <- rbind(addition,y) ## FIXME: running into error on this step --- come back and double-check. 
+  y_end <- rbind(addition,y) 
   colnames(y_end) <- colnames(y)
   y_end
 }
@@ -189,8 +186,8 @@ SEEIRRModel <- function(pars, times){
 #' This function returns incidence for given times 
 #' using the exponential growth model. 
 #' 
-#' @param pars Exponential growth model parameters
-#' @param times Time points for incidence calculation 
+#' @param pars Vector of exponential growth model parameters.
+#' @param times Vector of time points for incidence calculation.
 #' 
 #' @return Returns incidence for given time points
 #' 
@@ -210,12 +207,12 @@ exponential_growth_model <- function(pars, times){
 }
 
 #' This function returns incidence for given times 
-#' using the gaussian process model. 
+#' using the Gaussian process model. 
 #' 
-#' @param pars Gaussan process model parameters
-#' @param times Time points for incidence calculation 
+#' @param pars Vector of labeled Gaussan process model parameters.
+#' @param times Vector of time points for incidence calculation.
 #' 
-#' @return Returns incidence for given time points
+#' @return Returns incidence for given time points.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -245,15 +242,15 @@ gaussian_process_model <- function(pars, times){
 }
 
 #' Given a vector of daily infection probabilities, 
-#' this function converts this to the input expected
-#' by the Gaussian process model
+#' this function converts this vector to the format expected
+#' by the Gaussian process model.
 #' 
-#' @param desired_probs FIX ME 
-#' @param pars Exponential growth model parameters
-#' @param times Time points for incidence calculation 
+#' @param desired_probs Vector of probabilities for GP transformation.
+#' @param pars Exponential growth model parameters.
+#' @param times Time points for incidence calculation. 
 #' 
 #' @return Returns daily infection probabilities in the format 
-#' expected by the Gaussian process model
+#' expected by the Gaussian process model.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -267,8 +264,7 @@ reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review upder
   rho <- pars["rho"]
   K <- nu^2 * exp(-rho^2 * t_dist^2)
   diag(K) <- diag(K) + 0.01
-  L_K <- t(chol(K)) ## FIXME: where is "t" initialized?
-
+  L_K <- t(chol(K))
 
   ps <- sum(desired_probs)*desired_probs + 0.000000001
   ps <- pars["overall_prob"]*ps/sum(ps)
@@ -280,15 +276,14 @@ reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review upder
 
 
 #' This function solves the SEIR ODEs and returns
-#' a matrix of class deSolve. This function utilizes
-#' ODE solver deSolve, which intrinsically uses lsoda. 
+#' a matrix of class deSolve.  
 #' 
-#' @param init Initial conditions for system of equations 
-#' @param pars SEIR model parameters
-#' @param times Time points for incidence calculation 
+#' @param init Vector of labeled initial conditions for system of equations. 
+#' @param pars Vector of SEIR model parameters.
+#' @param times Vector of time points.
 #' 
 #' @return Returns matrix of class deSolve containing solutions for SEIR ODEs 
-#' for each time in ts 
+#' for each time in ts.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -296,24 +291,24 @@ reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review upder
 #' @examples FIX ME
 #' @export
 solveSEIRModel_lsoda <- function(ts, init, pars,compatible=FALSE){
-  pars <- pars[c("beta","sigma","gamma")] ## FIXME: which parameters are represented by beta, sigma and gamma? 
+  pars <- pars[c("beta","sigma","gamma")] 
   deSolve::ode(init, ts, func="SEIR_model_lsoda",parms=pars,
                dllname="virosolver",initfunc="initmodSEIR",
                nout=0, rtol=1e-6,atol=1e-6)
 }
 
-#' This function solves the SEIR ODEs for each time in ts and returns 
-#' a matrix of values solved for the time points specified in 'ts'. 
+#' This function solves the SEIR ODEs for a series of 
+#' time points and returns a matrix of the solved values.
 #' 
-#' @param ts Time points for incidence calculation 
-#' @param init Initial conditions for system of equations 
-#' @param pars SEIR model parameters
-#' @param compatible A boolean variable indicating if
+#' @param ts Vector of time points.
+#' @param init Vector of initial conditions for system of equations.
+#' @param pars Vector of labeled SEIR model parameters.
+#' @param compatible A Boolean variable indicating if
 #' results should be transposed in deSolve compatible format.
 #' Set to FALSE by default. 
 #' 
 #' @return Returns matrix of class deSolve containing solutions for SEIR ODEs 
-#' for each time in ts 
+#' for each time in ts.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -327,19 +322,20 @@ solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
 
-#' This function solves the SEIR ODEs for each time in ts and returns 
-#' a matrix of values solved for the time points specified in 'ts'. 
+#' This function solves the SEIR ODEs for a series of 
+#' time points and returns a matrix of the solved values.
+#'  
 #' This function takes into account models in which R0 changes with time.
 #' 
-#' @param ts Time points for incidence calculation 
-#' @param init Initial conditions for system of equations 
-#' @param pars SEIR model parameters
-#' @param compatible A boolean variable indicating if
+#' @param ts Vector of time points for incidence calculation.
+#' @param init Vector of labeled initial conditions for system of equations.
+#' @param pars Vector of labeled SEIR model parameters.
+#' @param compatible A Boolean variable indicating whether
 #' results should be transposed in deSolve compatible format.
 #' Set to FALSE by default. 
 #' 
 #' @return Returns matrix of class deSolve containing solutions for SEIR ODEs 
-#' for each time in ts 
+#' for each time in ts.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -354,18 +350,18 @@ solveSEIRswitch_rlsoda <- function(ts, init, pars,compatible=FALSE){
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
 
-#' This function solves the SEEIRR ODEs for each time in ts and returns 
-#' a matrix of values solved for the time points specified in 'ts'. 
+#'  This function solves the SEEIRR ODEs for a series of 
+#' time points and returns a matrix of the solved values.
 #' 
-#' @param ts Time points for incidence calculation 
-#' @param init Initial conditions for system of equations 
-#' @param pars SEEIRR model parameters
-#' @param compatible A boolean variable indicating if
+#' @param ts Vector of time points for incidence calculation.
+#' @param init Vector of labeled initial conditions for system of equations. 
+#' @param pars Vector of labeledSEEIRR model parameters.
+#' @param compatible Boolean variable indicating whether
 #' results should be transposed in deSolve compatible format.
 #' Set to FALSE by default. 
 #' 
 #' @return Returns matrix of class deSolve containing solutions for SEEIRR ODEs 
-#' for each time in ts 
+#' for each time in ts.
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family incidence functions
@@ -379,12 +375,12 @@ solveSEEIRRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
                  deSolve_compatible = compatible,return_time=TRUE,return_initial=TRUE,atol=1e-6,rtol=1e-6)
 }
 
-#' This function solves the SEIR ODEs for each time in ts and returns 
-#' a vector of detectable prevalence values for each time point given in
-#' the 'times' parameter
+#' This function solves the SEIR ODEs for a 
+#' series of time points and returns a vector 
+#' of detectable prevalence values.
 #' 
-#' @param pars SEIR model parameters
-#' @param times Time points for incidence calculation 
+#' @param pars Vector of labeled SEIR model parameters.
+#' @param times Vector of labeled time points for incidence calculation. 
 #' 
 #' @return 
 #' 
@@ -403,5 +399,6 @@ detectable_SEIRModel <- function(pars, times){
 
   detectable_prev <- y[4,]
   detectable_prev <- c(rep(0, pars["t0"]),detectable_prev)
+  ## Removes negative values from prevalence vectors
   pmax(0, detectable_prev)
 }
