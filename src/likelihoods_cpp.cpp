@@ -415,5 +415,6 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
     }
   }
   return density;
+  //return List::create(density, prob_incu_period, prob_sampling_delay, prob_detectable_dat);
 }
 

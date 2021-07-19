@@ -2,22 +2,36 @@
 % Please edit documentation in R/simulation_functions.R
 \name{simulate_viral_loads_wrapper}
 \alias{simulate_viral_loads_wrapper}
-\title{Simulate observed Ct values for the line list dataset. NOTE this differs to virosolver::simulate_viral_loads,
-as this function only solves the viral kinetics model for the observation time
-INPUTS:
-1. linelist: the line list for observed individuals
-2. kinetics_pars: vector of named parameters for the viral kinetics model
-OUTPUTS:
-1. A tibble with the line list data and the viral load/ct/observed ct at the time of sampled}
+\title{Simulate observed Ct values for the line list dataset}
 \usage{
 simulate_viral_loads_wrapper(linelist, kinetics_pars)
 }
-\description{
-Simulate observed Ct values for the line list dataset. NOTE this differs to virosolver::simulate_viral_loads,
-as this function only solves the viral kinetics model for the observation time
-INPUTS:
-1. linelist: the line list for observed individuals
-2. kinetics_pars: vector of named parameters for the viral kinetics model
-OUTPUTS:
-1. A tibble with the line list data and the viral load/ct/observed ct at the time of sampled
+\arguments{
+\item{linelist}{The line list for observed individuals.}
+
+\item{kinetics_pars}{Vector of named parameters for the viral kinetics model.}
 }
+\value{
+A tibble with the line list data and the viral load/ct/observed ct at the time of
+sample collection.
+}
+\description{
+This differs from virosolver::simulate_viral_loads,
+as this function only solves the viral kinetics model for the observation time.
+}
+\examples{
+FIX ME
+
+}
+\seealso{
+Other simulation functions: 
+\code{\link{simulate_infection_times}()},
+\code{\link{simulate_observations_wrapper}()},
+\code{\link{simulate_reporting}()},
+\code{\link{simulate_seir_process}()},
+\code{\link{simulate_viral_loads}()}
+}
+\author{
+James Hay, \email{jhay@hsph.harvard.edu}
+}
+\concept{simulation functions}

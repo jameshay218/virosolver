@@ -65,6 +65,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' @param ages Vector of ages (time since infection).
 #' @param pars Model parameters.
 #' @param prob_infection Vector of the probability of infection.
+#' @param symptom_surveillance Boolean if TRUE, then takes arguments from pars and generates the Ct distribution assuming symptom-based surveillance
 #' 
 #' @return Tibble containing Ct values, densities, and times 
 #' 
@@ -74,7 +75,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' @examples FIX ME
 #' 
 #' @export
-pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection){
+pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, symptom_surveillance=FALSE){
   ## Time at which standard deviation is reduced
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
   sd_mod <- rep(pars["sd_mod"], length(ages)) ## Up until t_switch, full standard deviation
@@ -92,7 +93,11 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection){
     ## Restrict ages to times occurring before 
     ## time of data collection (single cross section)
     ages1 <- ages[(obs_time - ages) > 0]
-    densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod) ## FIX ME: is pred_dist_cpp still relevant?  
+    if(!symptom_surveillance){
+      densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod) ## FIX ME: is pred_dist_cpp still relevant?  
+    } else {
+      densities <- pred_dist_cpp_symptoms(test_cts, pars["max_incu_period"],pars["max_sampling_delay"], obs_time, pars, prob_infection,sd_mod)
+    }
     comb_dat[[obs_time]] <- tibble(ct=test_cts,density=densities, t=obs_time)
   }
   comb_dat <- do.call("bind_rows",comb_dat)

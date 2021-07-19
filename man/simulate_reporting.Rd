@@ -2,25 +2,7 @@
 % Please edit documentation in R/simulation_functions.R
 \name{simulate_reporting}
 \alias{simulate_reporting}
-\title{Subset line list data by testing strategy. Options:
-\enumerate{
-\item Sample a random fraction of the population if the only argument is frac_report
-\item Sample some random fraction of the population at a subset of time points, specified by timevarying_prob
-\item Observe symptomatic individuals with some fixed probability, frac_report if symptomatic is TRUE
-\item Observe symptomatic individuals with some time-varying probability, timevarying_prob, if symptomatic is TRUE
-INPUTS:
-\enumerate{
-\item individuals: the full line list from the simulation, returned by virosolver::simulate_observations_wrapper
-\item solve_times: vector of times at which individuals can be reported
-\item frac_report: the overall fraction/probability of individuals who are reported
-\item timevarying_prob: a tibble with variables t and prob. This gives the probability of being reported on day t
-\item symptomatic: if TRUE, then individuals are reported after developing symptoms. If FALSE, then we take a random cross-section
-OUTPUTS:
-\item A tibble with line list data for individuals who were observed
-\item A plot of incidence for both observed individuals and the entire simulated population
-\item Plot growth rate of cases/infections in the entire population and observed population
-}
-}}
+\title{Simulate reporting}
 \usage{
 simulate_reporting(
   individuals,
@@ -30,24 +12,54 @@ simulate_reporting(
   symptomatic = FALSE
 )
 }
+\arguments{
+\item{individuals}{The full line list from the simulation, returned by
+virosolver::simulate_observations_wrapper.}
+
+\item{solve_times}{Vector of times at which individuals can be reported.}
+
+\item{frac_report}{The overall fraction/probability of individuals who are reported.
+Defaults to 1.}
+
+\item{timevarying_prob}{A tibble with variables t and prob. This gives the probability of
+being reported on day t. NULL by default.}
+
+\item{symptomatic}{If TRUE, then individuals are reported after developing symptoms.
+If FALSE, then we take a random cross-section. Defaults to FALSE.}
+}
+\value{
+Returns a list of 3 things:
+\enumerate{
+\item A tibble with line list data for individuals who were observed.
+\item A plot of incidence for both observed individuals and the entire simulated population.
+\item Plot growth rate of cases/infections in the entire population and observed population.
+}
+}
 \description{
-Subset line list data by testing strategy. Options:
+Line list data are subset by testing strategy. There are four options:
 \enumerate{
-\item Sample a random fraction of the population if the only argument is frac_report
-\item Sample some random fraction of the population at a subset of time points, specified by timevarying_prob
-\item Observe symptomatic individuals with some fixed probability, frac_report if symptomatic is TRUE
-\item Observe symptomatic individuals with some time-varying probability, timevarying_prob, if symptomatic is TRUE
-INPUTS:
-\enumerate{
-\item individuals: the full line list from the simulation, returned by virosolver::simulate_observations_wrapper
-\item solve_times: vector of times at which individuals can be reported
-\item frac_report: the overall fraction/probability of individuals who are reported
-\item timevarying_prob: a tibble with variables t and prob. This gives the probability of being reported on day t
-\item symptomatic: if TRUE, then individuals are reported after developing symptoms. If FALSE, then we take a random cross-section
-OUTPUTS:
-\item A tibble with line list data for individuals who were observed
-\item A plot of incidence for both observed individuals and the entire simulated population
-\item Plot growth rate of cases/infections in the entire population and observed population
+\item Sample a random fraction of the population if the only argument is frac_report.
+\item Sample some random fraction of the population at a subset of time points, specified
+by timevarying_prob.
+\item Observe symptomatic individuals with some fixed probability, frac_report if symptomatic
+is TRUE.
+\item Observe symptomatic individuals with some time-varying probability, timevarying_prob,
+if symptomatic is TRUE.
 }
 }
+\examples{
+FIX ME
+
 }
+\seealso{
+Other simulation functions: 
+\code{\link{simulate_infection_times}()},
+\code{\link{simulate_observations_wrapper}()},
+\code{\link{simulate_seir_process}()},
+\code{\link{simulate_viral_loads_wrapper}()},
+\code{\link{simulate_viral_loads}()}
+}
+\author{
+James Hay, \email{jhay@hsph.harvard.edu}
+}
+\concept{simulation functions}
