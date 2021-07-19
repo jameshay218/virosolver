@@ -3,10 +3,10 @@ C_SEIR_model_rlsoda <- NULL
 C_SEEIRR_model_rlsoda <- NULL
 C_SEIR_switch_rlsoda <- NULL
 C_initmodSEIR <- NULL
-C_SEIR_model_rlsoda <- NULL
+C_SEIR_model_lsoda <- NULL
 
-#' @useDynLib virosolver, .registration=TRUE
-#' @importFrom Rcpp sourceCpp
+#' @useDynLib virosolver
+#' @importFrom Rcpp sourceCpp evalCpp
 .onLoad <- function(...) {
   C_SEIR_model_rlsoda <<- getNativeSymbolInfo("SEIR_model_rlsoda", PACKAGE = "virosolver")
   C_SEEIRR_model_rlsoda <<- getNativeSymbolInfo("SEEIRR_model_rlsoda", PACKAGE = "virosolver")

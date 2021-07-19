@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // dgumbel_jh
 double dgumbel_jh(double x, double mu, double sigma);
 RcppExport SEXP _virosolver_dgumbel_jh(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {

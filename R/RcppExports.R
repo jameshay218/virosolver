@@ -3,38 +3,38 @@
 
 #' @export
 dgumbel_jh <- function(x, mu, sigma) {
-    .Call(`_virosolver_dgumbel_jh`, x, mu, sigma)
+    .Call('_virosolver_dgumbel_jh', PACKAGE = 'virosolver', x, mu, sigma)
 }
 
 pgumbel_scale <- function(x, mu, sigma) {
-    .Call(`_virosolver_pgumbel_scale`, x, mu, sigma)
+    .Call('_virosolver_pgumbel_scale', PACKAGE = 'virosolver', x, mu, sigma)
 }
 
 pgumbel_jh <- function(x, mu, sigma) {
-    .Call(`_virosolver_pgumbel_jh`, x, mu, sigma)
+    .Call('_virosolver_pgumbel_jh', PACKAGE = 'virosolver', x, mu, sigma)
 }
 
 prop_detectable_cpp <- function(a, viral_load, obs_sd, lod, t_switch, prob_detect) {
-    .Call(`_virosolver_prop_detectable_cpp`, a, viral_load, obs_sd, lod, t_switch, prob_detect)
+    .Call('_virosolver_prop_detectable_cpp', PACKAGE = 'virosolver', a, viral_load, obs_sd, lod, t_switch, prob_detect)
 }
 
 likelihood_cpp <- function(obs, obs_time, ages, pars, prob_infection, sd_mod_vec) {
-    .Call(`_virosolver_likelihood_cpp`, obs, obs_time, ages, pars, prob_infection, sd_mod_vec)
+    .Call('_virosolver_likelihood_cpp', PACKAGE = 'virosolver', obs, obs_time, ages, pars, prob_infection, sd_mod_vec)
 }
 
 likelihood_pos_only_cpp <- function(obs, obs_time, ages, pars, prob_infection, sd_mod_vec) {
-    .Call(`_virosolver_likelihood_pos_only_cpp`, obs, obs_time, ages, pars, prob_infection, sd_mod_vec)
+    .Call('_virosolver_likelihood_pos_only_cpp', PACKAGE = 'virosolver', obs, obs_time, ages, pars, prob_infection, sd_mod_vec)
 }
 
 pred_dist_cpp <- function(test_cts, ages, obs_time, pars, prob_infection, sd_mod_vec) {
-    .Call(`_virosolver_pred_dist_cpp`, test_cts, ages, obs_time, pars, prob_infection, sd_mod_vec)
+    .Call('_virosolver_pred_dist_cpp', PACKAGE = 'virosolver', test_cts, ages, obs_time, pars, prob_infection, sd_mod_vec)
 }
 
 pred_dist_cpp_symptoms <- function(test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec) {
-    .Call(`_virosolver_pred_dist_cpp_symptoms`, test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec)
+    .Call('_virosolver_pred_dist_cpp_symptoms', PACKAGE = 'virosolver', test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec)
 }
 
 viral_load_func_single_cpp <- function(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl) {
-    .Call(`_virosolver_viral_load_func_single_cpp`, tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl)
+    .Call('_virosolver_viral_load_func_single_cpp', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl)
 }
 

@@ -13,7 +13,7 @@ static const R_CMethodDef cMethods[] = {
 void R_init_virosolver(DllInfo *dll) {
   R_registerRoutines(dll, cMethods, NULL, NULL, NULL);
   // Rich needs to work out how to get rlsoda to behave with registered routines, so this is disabled for now.
-  // R_useDynamicSymbols(dll, FALSE);
+  // R_useDynamicSymbols(dll, TRUE);
   // R_useDynamicSymbols(dll, TRUE);
   //R_useDynamicSymbols(dll, TRUE);
   // R_forceSymbols(dll, FALSE);
