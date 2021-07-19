@@ -1,4 +1,25 @@
+#' Simulate viral loads
+#' 
+#' Takes infection times, the times over which to solve the model, and 
+#' the viral kinetics parameters and returns a tibble containing true and observed viral loads.
+#' 
+#' @param infection_times Vector containing infection times. 
+#' @param solve_times Vector of times at which individuals can be reported.
+#' @param kinetics_pars Vector of named parameters for the viral kinetics model.
+#' @param vl_func_use Determines which viral load function to use. 
+#' The default is viral_load_func.
+#' @param convert_vl Convert to viral load value. FALSE by default.
+#' @param add_noise Add noise to Ct values? NULL by default.
+#' 
+#' @return Returns a tibble containing true and observed viral loads.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family simulation functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
+
 simulate_viral_loads <- function(infection_times,
                                  solve_times,
                                  kinetics_pars,
@@ -17,21 +38,21 @@ simulate_viral_loads <- function(infection_times,
   decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
 
-
   ## Pre-compute negative binomial draws for loss in detectability
-  #if(additional_detect_process){
-    ## How many days do you remain detectable after hitting the switch point?
-    days_still_detectable <- rnbinom(n, size=1,prob=kinetics_pars["prob_detect"])
-  #}
+  ## How many days do you remain detectable after hitting the switch point?
+  days_still_detectable <- rnbinom(n, size=1,prob=kinetics_pars["prob_detect"])
 
   for(i in seq_along(infection_times)){
+    ## %% is modular division used here as a progress indicator. Generates a message with
+    ## i every 1000th iteration
     if(i %% 1000 == 0) message(i)
     if(infection_times[i] > 0){
       pars <- kinetics_pars
       mod_probs <- rep(1, length(solve_times))
+      ## Calling the viral load function to get Ct values
       ct <- vl_func_use(pars, solve_times, FALSE, infection_times[i])
       ## Additional way that individuals can become undetectable
-        ## How long to wait until undetectable?
+      ## How long to wait until undetectable?
       mod_probs[which(solve_times >= kinetics_pars["tshift"] +
                         kinetics_pars["desired_mode"] +
                         kinetics_pars["t_switch"] +
@@ -46,50 +67,92 @@ simulate_viral_loads <- function(infection_times,
   }
   colnames(viral_loads) <- solve_times
 
+  ## Convert to viral load value
   if(convert_vl) {
     viral_loads <- ((kinetics_pars["intercept"]-viral_loads)/log2(10)) + kinetics_pars["LOD"]
     true_viral_loads <- viral_loads
+    ## If some of the viral loads are less than the limit of detection, re-assign these values
+    ## to the limit of detection
     true_viral_loads[true_viral_loads < kinetics_pars["LOD"]] <- kinetics_pars["LOD"]
   } else {
     true_viral_loads <- viral_loads
+    ## If some of the viral loads are greater than the intercept parameter, re-assign these
+    ## values to equal the intercept (the maximum number of cycles run on the PCR machine, always
+    ## assumed to be 40 in the simulations).
     true_viral_loads[true_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]
   }
+  
+  ## Add noise to Ct values
   if(!is.null(add_noise)){
     observed_viral_loads <- t(apply(viral_loads, 1, function(vl) add_noise(length(vl),vl, kinetics_pars["obs_sd"])))
     colnames(observed_viral_loads) <- solve_times
     if(convert_vl) {
+      ## If some of the viral loads are less than the limit of detection, re-assign these values
+      ## to the limit of detection
       observed_viral_loads[observed_viral_loads < kinetics_pars["LOD"]] <- kinetics_pars["LOD"]
     } else {
+      ## If some of the viral loads are greater than the intercept parameter, re-assign these
+      ## values to equal the intercept (the maximum number of cycles run on the PCR machine)
       observed_viral_loads[observed_viral_loads > kinetics_pars["intercept"]] <- kinetics_pars["intercept"]
     }
   } else {
     observed_viral_loads <- true_viral_loads
   }
+  
+  ## Transform wide-format data and into long-format data and add column names
   true_viral_loads_melted <- reshape2::melt(true_viral_loads)
   colnames(true_viral_loads_melted) <- c("i","t","true")
   obs_viral_loads_melted <- reshape2::melt(observed_viral_loads)
   colnames(obs_viral_loads_melted) <- c("i","t","obs")
 
+  # Adds columns from y (observed viral loads) to x (true viral loads), including all rows in x 
   combined_dat <- left_join(true_viral_loads_melted,obs_viral_loads_melted) %>% as_tibble
 
   return(combined_dat)
 }
 
+#' Simulate infection times
+#' 
+#' Infection times are simulated using the probability of infection and sample size n.
+#' 
+#' @param n Sample size. Must be an integer.
+#' @param prob_infection A vector containing probabilities of infection.
+#' @param overall_prob The overall probability of infection. NULL by default.
+#' 
+#' @return Returns a vector of infection times.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family simulation functions
+#' 
+#' @examples FIX ME
+#' 
 #'@export
+
 simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
+  
+  ## Sum the probability of infection to get overall probability of infection
   if(is.null(overall_prob)){
     overall_prob <- sum(prob_infection)
   }
+  
+  ## Scale the probability infection by the overall probability of infection
   scaled_prob<- prob_infection/sum(prob_infection)
+  
   are_infected <- numeric(n)
   infection_times <- numeric(n)
+  
+  ## For each sample n, simulate infection from a binomial distribution using the 
+  ## overall probability of infection. 
   for(i in 1:n){
     infection <- rbinom(1,1, overall_prob)
     are_infected[i] <- infection
+    ## If infected, sample from the probabilities of infection using the scaled
+    ## probability of infection
     if(infection == 1){
       t_inf <- sample(1:length(prob_infection), 1, prob=scaled_prob)
       infection_times[i] <- t_inf
     } else {
+      ## If not infected, assign -1 to infection times
       infection_times[i] <- -1
     }
   }
@@ -98,55 +161,97 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 
 #' Simulate full line list data
 #'
-#' Takes a vector of infection incidence (absolute numbers) and returns a tibble with line list data for all
-#' individuals in the population. Infected individuals are assigned symptom onset, an incubation periods (if applicable)
-#' and confirmation delays from log normal and gamma distributions respectively.
+#' Takes a vector of infection incidence and returns a tibble with line list data for all
+#' individuals in the population. Infected individuals are assigned symptom onset, incubation 
+#' periods (if applicable) and confirmation delays from log normal and gamma distributions respectively.
+#'
+#' @param incidence A vector of infection incidence (absolute numbers).
+#' @param times Calendar time (i.e. days since the start of the epidemic).
+#' @param symp_frac Fraction of the population that is symptomatic. Defaults to 0.35.
+#' @param population_n Size of the population which equals the length of the incidence vector.
+#' @param incu_period_par1 The first parameter associated with the incubation period.
+#' Defaults to 1.621.
+#' @param incu_period_par2 The second parameter associated with the incubation period. 
+#' Defaults to 0.418.
+#' @param conf_delay_par1 The first parameter associated with the confirmation delay. 
+#' Defaults to 5.
+#' @param conf_delay_par2 The second parameter associated with the confirmation delay.
+#' Defaults to 2. 
+#'
+#' @return A tibble with line list data for all individuals in the population.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family simulation functions
+#' 
+#' @examples FIX ME
 #'
 #' @export
+
 simulate_observations_wrapper <- function(
   incidence, times, symp_frac=0.35,
   population_n=length(incidence),
   incu_period_par1=1.621,incu_period_par2=0.418,
   conf_delay_par1=5,conf_delay_par2=2){
+  
+  ## Number of individuals who are not infected in the population
   not_infected <- population_n-sum(incidence)
+  ## Create a tibble with infection times and incidence
   inc_dat <- tibble(infection_time=c(NA,times),inc=c(not_infected,incidence))
+  ## Duplicates rows in inc_dat according to inc
   inc_dat <- inc_dat %>% uncount(inc)
 
   inc_dat <- inc_dat %>%
     mutate(i=1:n()) %>%
+    ## If infection time is missing, assign 0 to is_infected, otherwise assign 1
     mutate(is_infected = ifelse(is.na(infection_time), 0, 1)) %>%
-    ## Is this individual going to be symptomatic?
+    ## Is this individual going to be symptomatic? Uses a binomial distribution
     mutate(is_symp=ifelse(is_infected, rbinom(n(), 1, symp_frac), 0)) %>%
-    ## Symptom onset time
+    ## Symptom onset time from a log normal distribution
     mutate(incu_period=ifelse(is_infected & is_symp, rlnorm(n(), incu_period_par1, incu_period_par2), NA),
            onset_time=infection_time+round(incu_period)) %>%
-    ## Confirmation time
+    ## Confirmation time from a gamma distribution
     mutate(confirmation_delay=extraDistr::rdgamma(n(),conf_delay_par1,conf_delay_par2))
   inc_dat
 }
 
-## Simulate deterministic SEIR model
-## INPUTS: Takes a vector of SEIR model parameters, times to solve over and population size.
-##      4. switch_model: if TRUE, uses the SEIR model with 2 switch points in transmission intensity
-## OUTPUTS: 
-##      1. Plot of all SEIR compartments over time
-##      2. Plot of incidence and prevalence over time
-##      3. Absolute incidence per time point
-##      4. Per capita incidence per time point
-##      5. Per capita prevalence (E+I) per time point
-##      6. Overall probability of infection
+#' Simulate SEIR model
+#' 
+#' Simulates a deterministic SEIR model from model parameters, times to solve over, and 
+#' population size.
+#' 
+#' @param pars SEIR model parameters.
+#' @param times Times over which the model is solved.
+#' @param N Population size. Defaults to 1.
+#' 
+#' @return Returns a list of 7 things: 
+#' 1. Plot of all SEIR compartments over time
+#' 2. Plot of incidence and prevalence over time
+#' 3. Solution of ordinary differential equation
+#' 4. Absolute incidence per time point (raw incidence)
+#' 5. Per capita incidence per time point
+#' 6. Per capita prevalence (compartments E+I) per time point
+#' 7. Overall probability of infection
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family simulation functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
+
 simulate_seir_process <- function(pars, times, N=1){
   ## Pull parameters for SEIR model
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
   ## Set up initial conditions.
   ## Note if population_n=1, then solves everything per capita
-  # init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0)
   init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0,0)
   
   ## Solve the SEIR model using the rlsoda package
   #sol <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
   #                      deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
+  
+  ## Solve the SEIR model using the lsoda package. lsoda runs about 4x slower than rlsoda, but
+  ## the lsoda package is available on CRAN, making it more user-friendly.
   sol <- deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
                       dllname="virosolver",initfunc="initmodSEIR",
                       nout=0, rtol=1e-6,atol=1e-6)
@@ -157,7 +262,7 @@ simulate_seir_process <- function(pars, times, N=1){
   ## Get Rt
   sol$Rt <- (sol$S) * pars["R0"]
   
-  ## Shift for start
+  ## Shift time for start
   sol$time <- sol$time + floor(pars["t0"])
   
   ## Dummy rows from pre-seeding
@@ -175,7 +280,7 @@ simulate_seir_process <- function(pars, times, N=1){
   per_cap_inc <- inc/N
   per_cap_prev <- (sol$E + sol$I)/N
   
-  ## Melt solution, get per capita and plot
+  ## Melt solution (wide to long format) and get per capita
   sol <- reshape2::melt(sol, id.vars="time")
   sol$value <- sol$value/N
   
@@ -203,23 +308,39 @@ simulate_seir_process <- function(pars, times, N=1){
               overall_prob_infection=sum(per_cap_inc)))
 }
 
-
-#' Subset line list data by testing strategy. Options:
-#' 1. Sample a random fraction of the population if the only argument is frac_report
-#' 2. Sample some random fraction of the population at a subset of time points, specified by timevarying_prob
-#' 3. Observe symptomatic individuals with some fixed probability, frac_report if symptomatic is TRUE
-#' 4. Observe symptomatic individuals with some time-varying probability, timevarying_prob, if symptomatic is TRUE
-#' INPUTS: 
-#'      1. individuals: the full line list from the simulation, returned by virosolver::simulate_observations_wrapper
-#'      2. solve_times: vector of times at which individuals can be reported
-#'      3. frac_report: the overall fraction/probability of individuals who are reported
-#'      4. timevarying_prob: a tibble with variables t and prob. This gives the probability of being reported on day t
-#'      5. symptomatic: if TRUE, then individuals are reported after developing symptoms. If FALSE, then we take a random cross-section 
-#' OUTPUTS: 
-#'      1. A tibble with line list data for individuals who were observed
-#'      2. A plot of incidence for both observed individuals and the entire simulated population
-#'      3. Plot growth rate of cases/infections in the entire population and observed population
+#' Simulate reporting
+#' 
+#' Line list data are subset by testing strategy. There are four options:
+#' 1. Sample a random fraction of the population if the only argument is frac_report.
+#' 2. Sample some random fraction of the population at a subset of time points, specified 
+#' by timevarying_prob.
+#' 3. Observe symptomatic individuals with some fixed probability, frac_report if symptomatic 
+#' is TRUE.
+#' 4. Observe symptomatic individuals with some time-varying probability, timevarying_prob, 
+#' if symptomatic is TRUE.
+#' 
+#' @param individuals The full line list from the simulation, returned by 
+#' virosolver::simulate_observations_wrapper.
+#' @param solve_times Vector of times at which individuals can be reported.
+#' @param frac_report The overall fraction/probability of individuals who are reported. 
+#' Defaults to 1.
+#' @param timevarying_prob A tibble with variables t and prob. This gives the probability of 
+#' being reported on day t. NULL by default.
+#' @param symptomatic If TRUE, then individuals are reported after developing symptoms. 
+#' If FALSE, then we take a random cross-section. Defaults to FALSE.
+#' 
+#' @return Returns a list of 3 things: 
+#' 1. A tibble with line list data for individuals who were observed.
+#' 2. A plot of incidence for both observed individuals and the entire simulated population.
+#' 3. Plot growth rate of cases/infections in the entire population and observed population.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family simulation functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
+
 simulate_reporting <- function(individuals,
                                solve_times, 
                                frac_report=1,
@@ -271,27 +392,9 @@ simulate_reporting <- function(individuals,
       }
       sampled_individuals <- do.call("bind_rows", tmp_sampled_indivs)
       
-      #browser()
-      ## How many individuals are we going to observe by the end?
-      #frac_report_overall <- 1-prod(1-timevarying_prob$prob)
-      #frac_report_overall <- sum(timevarying_prob$prob)
-      ## We will first get the fraction of individuals we will sample over the whole period
-      ## Then, we will change the time-varying reporting probability to the relative number
-      ## sampled on each day
-      #scaled_timevarying_prob <- timevarying_prob$prob/frac_report_overall
-      
-      ## On each time point in timevarying_prob$t, choose some random fraction of the population
-      ## to observe, weighted by scaled_timevarying_prob
-      ## assign a sample time and confirmation time
-      #sampled_individuals <- sampled_individuals %>%
-      #  sample_frac(frac_report_overall) %>%
-      # group_by(i) %>%
-      #  mutate(sampled_time = sample(timevarying_prob$t, n(), replace=TRUE, prob=scaled_timevarying_prob),
-      #        confirmed_time = sampled_time + confirmation_delay) %>%
-      #  ungroup()
     } else {
       ## This is quite different - if you have symptom onset on day t, there is a probability that you will be observed
-      ## Symptomatic based surveillance. Observe individuals based on symptom onset date
+      ## by symptomatic based surveillance. Observe individuals based on symptom onset date
       sampled_individuals <- sampled_individuals %>% 
         filter(is_symp==1) %>% ## Subset for symptomatic
         left_join(timevarying_prob %>% rename(onset_time=t) %>% ## Join with time-varying reporting rate table
@@ -360,6 +463,7 @@ simulate_reporting <- function(individuals,
     mutate(gr_window=zoo::rollmean(gr_daily, window,align="right",fill=NA)) %>%
     mutate(window = as.factor(window))
   
+  ## Plot growth rate of cases/infections in the entire population and observed population
   p_gr <- ggplot(growth_rates_all) +
     geom_line(aes(x=t,y=gr_window,col=ver)) +
     geom_hline(yintercept=0,linetype="dashed") +
@@ -376,14 +480,24 @@ simulate_reporting <- function(individuals,
        plot_gr=p_gr)
 }
 
-#' Simulate observed Ct values for the line list dataset. NOTE this differs to virosolver::simulate_viral_loads,
-#' as this function only solves the viral kinetics model for the observation time
-#' INPUTS: 
-#'      1. linelist: the line list for observed individuals
-#'      2. kinetics_pars: vector of named parameters for the viral kinetics model
-#' OUTPUTS: 
-#'      1. A tibble with the line list data and the viral load/ct/observed ct at the time of sampled
+#' Simulate observed Ct values for the line list dataset 
+#' 
+#' This differs from virosolver::simulate_viral_loads,
+#' as this function only solves the viral kinetics model for the observation time.
+#' 
+#' @param linelist The line list for observed individuals.
+#' @param kinetics_pars Vector of named parameters for the viral kinetics model.
+#' 
+#' @return A tibble with the line list data and the viral load/ct/observed ct at the time of 
+#' sample collection.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family simulation functions
+#' 
+#' @examples FIX ME
+#' 
 #' @export
+
 simulate_viral_loads_wrapper <- function(linelist,
                                          kinetics_pars){
   ## Control for changing standard deviation
@@ -394,6 +508,7 @@ simulate_viral_loads_wrapper <- function(linelist,
   sd_mod[unmod_vec] <- 1
   decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
+  
   vl_dat <- linelist %>% 
     ## Fix infection time for uninfected individuals
     mutate(infection_time = ifelse(is.na(infection_time),-100, infection_time)) %>%
@@ -416,5 +531,6 @@ simulate_viral_loads_wrapper <- function(linelist,
     mutate(ct_obs = pmin(ct_obs_sim, kinetics_pars["intercept"])) %>%
     ungroup() %>%
     mutate(infection_time = ifelse(infection_time < 0, NA, infection_time))
+  
   return(viral_loads=vl_dat)
 }
