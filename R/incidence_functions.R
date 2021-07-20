@@ -256,7 +256,7 @@ gaussian_process_model <- function(pars, times){
   k1 <- (L_K %*% k)[,1]
   ps <- 1/(1+exp(-k1))
   ps <- ps/sum(ps)
-  ## Calculates incidence for given times 
+  ## Calculates incidence rate (probability of infection) for given times 
   prob_infection_tmp <- ps*overall_prob
   prob_infection_tmp
 }
