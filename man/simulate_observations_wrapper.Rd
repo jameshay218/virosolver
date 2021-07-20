@@ -15,8 +15,48 @@ simulate_observations_wrapper(
   conf_delay_par2 = 2
 )
 }
-\description{
-Takes a vector of infection incidence (absolute numbers) and returns a tibble with line list data for all
-individuals in the population. Infected individuals are assigned symptom onset, an incubation periods (if applicable)
-and confirmation delays from log normal and gamma distributions respectively.
+\arguments{
+\item{incidence}{A vector of infection incidence (absolute numbers).}
+
+\item{times}{Calendar time (i.e. days since the start of the epidemic).}
+
+\item{symp_frac}{Fraction of the population that is symptomatic. Defaults to 0.35.}
+
+\item{population_n}{Size of the population which equals the length of the incidence vector.}
+
+\item{incu_period_par1}{The first parameter associated with the incubation period.
+Defaults to 1.621.}
+
+\item{incu_period_par2}{The second parameter associated with the incubation period.
+Defaults to 0.418.}
+
+\item{conf_delay_par1}{The first parameter associated with the confirmation delay.
+Defaults to 5.}
+
+\item{conf_delay_par2}{The second parameter associated with the confirmation delay.
+Defaults to 2.}
 }
+\value{
+A tibble with line list data for all individuals in the population.
+}
+\description{
+Takes a vector of infection incidence and returns a tibble with line list data for all
+individuals in the population. Infected individuals are assigned symptom onset, incubation
+periods (if applicable) and confirmation delays from log normal and gamma distributions respectively.
+}
+\examples{
+FIX ME
+
+}
+\seealso{
+Other simulation functions: 
+\code{\link{simulate_infection_times}()},
+\code{\link{simulate_reporting}()},
+\code{\link{simulate_seir_process}()},
+\code{\link{simulate_viral_loads_wrapper}()},
+\code{\link{simulate_viral_loads}()}
+}
+\author{
+James Hay, \email{jhay@hsph.harvard.edu}
+}
+\concept{simulation functions}

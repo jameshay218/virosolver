@@ -352,7 +352,7 @@ simulate_reporting <- function(individuals,
   
   ## If a flat reporting rate
   if(is.null(timevarying_prob)){
-    ## Base case, just sampled individuals at random
+    ## Base case, individuals are sampled at random
     if(!symptomatic){
       ## Sample a fraction of the overall line list and assign each individual a sample time (at random)
       ## and a confirmation time (with confirmation delay)
@@ -360,12 +360,12 @@ simulate_reporting <- function(individuals,
         sample_frac(frac_report) %>%
         group_by(i) %>%
         mutate(sampled_time=sample(solve_times,n()),
-               ## We sample but then have to wait for a result
+               ## We sample, but then have to wait for a result
                confirmed_time=sampled_time+confirmation_delay) %>%
         ungroup()
     } else {
       ## Symptomatic based surveillance. Observe individuals based on symptom onset date
-      ## Subset by symptomatic individuals, observe some fraction of these at some delay post symptom onset
+      ## Subset by symptomatic individuals. Observe some fraction of these at some delay post symptom onset
       sampled_individuals <- sampled_individuals %>% 
         filter(is_symp==1) %>% 
         sample_frac(frac_report) %>%
@@ -402,7 +402,8 @@ simulate_reporting <- function(individuals,
         group_by(i) 
       
       ## Quicker to vectorize
-      sampled_individuals$is_reported <- rbinom(nrow(sampled_individuals), 1, sampled_individuals$prob) ## Assign individuals as detected or not
+      ## Assign individuals as detected or not
+      sampled_individuals$is_reported <- rbinom(nrow(sampled_individuals), 1, sampled_individuals$prob) 
       
       sampled_individuals <- sampled_individuals %>%
         filter(is_reported == 1) %>% ## Only take detected individuals
@@ -426,7 +427,7 @@ simulate_reporting <- function(individuals,
     complete(var, nesting(t),fill = list(n = 0)) %>%
     mutate(ver="Sampled individuals")
   
-  ## Grouped entire dataset
+  ## Group entire dataset
   grouped_dat_all <- individuals %>% 
     dplyr::select(i, infection_time, onset_time) %>%
     pivot_longer(-i) %>% 
@@ -527,7 +528,9 @@ simulate_viral_loads_wrapper <- function(linelist,
            days_since_infection = pmax(sampled_time - infection_time,-1),
            sd_used = ifelse(days_since_infection > 0, kinetics_pars["obs_sd"]*sd_mod[days_since_infection],kinetics_pars["obs_sd"]),
            ct_obs_sim = extraDistr::rgumbel(n(), ct, sd_used)) %>%
-    ## Convert <LOD to LOD
+    ## If some of the viral loads are greater than the intercept parameter, re-assign these
+    ## values to equal the intercept (the maximum number of cycles run on the PCR machine, always
+    ## assumed to be 40 in the simulations).
     mutate(ct_obs = pmin(ct_obs_sim, kinetics_pars["intercept"])) %>%
     ungroup() %>%
     mutate(infection_time = ifelse(infection_time < 0, NA, infection_time))
