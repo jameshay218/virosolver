@@ -76,18 +76,29 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' 
 #' @export
 pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, symptom_surveillance=FALSE){
+  
+  max_age <- length(ages)
+  
+  if(symptom_surveillance){
+    test_cts <- test_cts[test_cts < pars["intercept"]]
+    max_age <- pars["max_incu_period"] + pars["max_sampling_delay"]
+  }
+  
   ## Time at which standard deviation is reduced
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
-  sd_mod <- rep(pars["sd_mod"], length(ages)) ## Up until t_switch, full standard deviation
+  sd_mod <- rep(pars["sd_mod"], max_age) ## Up until t_switch, full standard deviation
+  
 
+  
   ## Prior to t_switch, sd=1
-  unmod_vec <- 1:min(t_switch,length(ages))
+  unmod_vec <- 1:min(t_switch,max_age)
   sd_mod[unmod_vec] <- 1
 
   ## For the next sd_mod_wane days, variance about modal Ct trajectory decrease linearly
   decrease_vec <- (t_switch+1):(t_switch+pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-pars["sd_mod"])/pars["sd_mod_wane"])*seq_len(pars["sd_mod_wane"])
 
+  
   comb_dat <- NULL
   for(obs_time in obs_times){
     ## Restrict ages to times occurring before 

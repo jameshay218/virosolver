@@ -162,6 +162,7 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
                              NumericVector pars,
                              NumericVector prob_infection,
                              NumericVector sd_mod_vec){
+  
   // Parameters for viral kinetics model
   double tshift = pars["tshift"];
   double desired_mode = pars["desired_mode"];
@@ -228,7 +229,6 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
       // i) Probability of infection that day
       // ii) Probability still detectable today
       // iii) Probability of observing Ct value, given time since infection and being detectable+infected
-      //for(int j = 0; j < vl_ages.size(); ++j){
         for(int j = 0; j < max_age; ++j){
         liks_tj[i] += (dgumbel_jh(obs[i], vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])*
           prob_infection[obs_time-ages[j]-1]*
@@ -249,7 +249,9 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
                             NumericVector pars,
                             NumericVector prob_infection,
                             NumericVector sd_mod_vec){
-
+  
+  double ct_step = test_cts[1]-test_cts[0];
+  
   double lod = pars["LOD"];
   double tshift = pars["tshift"];
   double desired_mode = pars["desired_mode"];
@@ -299,7 +301,7 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
         density[i] = prob_undetectable;
       } else {
         density[i] += ((
-          pgumbel_jh(test_cts[i]+1, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])-
+          pgumbel_jh(test_cts[i]+ct_step, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])-
           pgumbel_jh(test_cts[i], vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])
                          )*
           prob_infection[obs_time-ages[j]-1]*
@@ -308,6 +310,7 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
       }
     }
   }
+  
   return density;
 }
 
@@ -320,6 +323,8 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
                             NumericVector pars,
                             NumericVector prob_infection,
                             NumericVector sd_mod_vec){
+  
+  double ct_step = test_cts[1]-test_cts[0];
   
   // Viral kinetics parameters
   double lod = pars["LOD"];
@@ -367,6 +372,7 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   for(int a = 0; a < prob_detectable_dat.size(); ++a){
     prob_detectable_dat[a] = prop_detectable_cpp(a, vl_ages[a],obs_sd*sd_mod_vec[a],
                                                  yintercept,t_switch1, prob_detect);
+    
     prob_undetectable += prob_detectable_dat[a]*prob_infection[obs_time-a];
     
     // If no one is detectable of a certain age since infection, then we will be dividing
@@ -381,14 +387,14 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   NumericVector prob_incu_period(max_incu_period+1);
   for(int o = 0; o < prob_incu_period.size(); ++o){
     prob_incu_period[o] = (R::plnorm(o+1, incu_par1, incu_par2, true, false) - R::plnorm(o, incu_par1, incu_par2, true, false))/
-      R::plnorm(max_incu_period, incu_par1, incu_par2, true, false);
+      R::plnorm(max_incu_period+1, incu_par1, incu_par2, true, false);
   }
   
   // Find probability of each discrete sampling delay
   NumericVector prob_sampling_delay(max_sampling_delay+1);
   for(int d = 0; d < prob_sampling_delay.size(); ++d){
     prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, sampling_par2, true, false) - R::pgamma(d, sampling_par1, sampling_par2, true, false))/
-      R::pgamma(max_sampling_delay, sampling_par1, sampling_par2, true, false);
+      R::pgamma(max_sampling_delay+1, sampling_par1, sampling_par2, true, false);
   }
   
   NumericVector density(test_cts.size());
@@ -402,7 +408,7 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
           density[i] = prob_undetectable;
         } else {
           density[i] += ((
-            pgumbel_jh(test_cts[i]+1, vl_ages[a], obs_sd*sd_mod_vec[a])-
+            pgumbel_jh(test_cts[i]+ct_step, vl_ages[a], obs_sd*sd_mod_vec[a])-
               pgumbel_jh(test_cts[i], vl_ages[a], obs_sd*sd_mod_vec[a])
           )*
             prob_sampling_delay[d]* // Probability of having this sampling delay
@@ -414,7 +420,18 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
       }
     }
   }
+  double renormalize_age = 0;
+  for(int d = 0; d < prob_sampling_delay.size(); ++d){
+    for(int o = 0; o < prob_incu_period.size(); ++o){
+      a = d + o; // Time since infection is days since onset + sampling delay
+      renormalize_age += prob_sampling_delay[d]* // Probability of having this sampling delay
+        prob_incu_period[o]* // Probability of having this incubation period
+        prob_infection[obs_time-a]*
+        prob_detectable_dat[a];
+      }
+    }
+  density = density/renormalize_age;
+  
   return density;
-  //return List::create(density, prob_incu_period, prob_sampling_delay, prob_detectable_dat);
 }
 
