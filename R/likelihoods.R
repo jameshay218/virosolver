@@ -9,7 +9,7 @@
 #' @param times Vector of sample collection times in the data.
 #' @param pars Model parameters.
 #' @param prob_infection Probability of infection.
-#' @param pos_only only use detectable Ct values? FALSE by default.
+#' @param pos_only Flag to only use detectable Ct values. FALSE by default.
 #' @param undetectable_counts Number of undetectable Ct samples. NULL by default.
 #' 
 #' @return Returns the likelihood.
@@ -57,7 +57,7 @@ likelihood_cpp_wrapper <- function(obs_dat, ages, times,
     sd_mod1 <- sd_mod[(times[i] - ages) > 0]
     obs1 <- obs_dat[[i]]
 
-    ## Undetectable Cts can be bucketed, as same likelihood for each
+    ## Undetectable Cts can be bucketed, as each has the same likelihood
     undetectable_lik <- 0
     if(!is.null(undetectable_counts) & !pos_only) {
       undetectable_lik <-  use_func(pars["intercept"], times[i], ages1,
@@ -134,7 +134,7 @@ prob_detectable_curve <- function(pars, ages){
 
 likelihood_detectable <- function(obs_dat, ages, pars, prob_infection){
   liks <- 0
-  ## For each sampling times, calculate likelihood for Ct values measured at that time
+  ## For each sampling time, calculate likelihood for Ct values measured at that time
   for(i in 1:nrow(obs_dat)){
     ## Only solve back until the earliest possible infection time
     obs_time <- obs_dat$t[i]
@@ -181,7 +181,7 @@ likelihood_detectable <- function(obs_dat, ages, pars, prob_infection){
 
 p_a <- function(x, a, pars, viral_loads, sd_mod) {
   viral_load_sd <- pars["obs_sd"]*sd_mod[a]
-  ## The intercept is the maximum number of cycles run on the PCR machine
+  ## The intercept is the maximum number of cycles run on the PCR machine 
   LOD <- pars["intercept"]
   
   renormalize <- extraDistr::pgumbel(LOD, viral_loads[a],viral_load_sd,lower.tail=TRUE) -
