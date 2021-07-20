@@ -61,7 +61,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' and observed times. 
 #' 
 #' @param test_cts Vector of Ct values.
-#' @param obs_times Vector of times at which data was collected (cross sections).
+#' @param obs_times Vector of times at which samples were collected (cross sections).
 #' @param ages Vector of ages (time since infection).
 #' @param pars Model parameters.
 #' @param prob_infection Vector of the probability of infection.
@@ -102,13 +102,18 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
   comb_dat <- NULL
   for(obs_time in obs_times){
     ## Restrict ages to times occurring before 
-    ## time of data collection (single cross section)
+    ## time of sample collection (single cross section)
     ages1 <- ages[(obs_time - ages) > 0]
+<<<<<<< HEAD
+    ## Returns the full probability density distribution to simulate from
+    densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod)  
+=======
     if(!symptom_surveillance){
       densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod) ## FIX ME: is pred_dist_cpp still relevant?  
     } else {
       densities <- pred_dist_cpp_symptoms(test_cts, pars["max_incu_period"],pars["max_sampling_delay"], obs_time, pars, prob_infection,sd_mod)
     }
+>>>>>>> f5a70dd60ef03d6aaef9b88b0dfec542fe5b6d5f
     comb_dat[[obs_time]] <- tibble(ct=test_cts,density=densities, t=obs_time)
   }
   comb_dat <- do.call("bind_rows",comb_dat)
@@ -120,7 +125,7 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
 #' and returns a dataframe of Ct values and ages. 
 #'  
 #' @param ages Vector of ages (days since infection).
-#' @param kinetics_pars A vector of labeled model parameters.
+#' @param kinetics_pars Vector of named parameters for the viral kinetics model.
 #' @param N Number of observations to randomly generate per age;
 #' Set to 100 by default.
 #' 
@@ -149,7 +154,7 @@ simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
     cts <- rep(virosolver::viral_load_func(kinetics_pars, age, FALSE, 0),N)
     cts[detectable_statuses <= age] <- 1000
     sd_used <- kinetics_pars["obs_sd"]*sd_mod[age]
-    ## Generate N observations of modal Ct values for the given age (FIX ME: assumed model bc of gumbel dist)
+    ## Generate N observations of Ct values from gumbel distribution for a specified mode
     ct_obs_sim <- extraDistr::rgumbel(N, cts, sd_used)
     ## Set Ct values greater than intercept to intercept value
     ct_obs_sim <- pmin(ct_obs_sim, kinetics_pars["intercept"])

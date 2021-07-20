@@ -4,9 +4,10 @@
 #' This function is used to generate random starting values 
 #' for the MCMC procedure.
 #' 
-#' @param partab Dataframe containing parameters corresponding
+#' @param partab Tibble containing parameters corresponding
 #' to underlying incidence model (e.g. SEIR, SEEIRR).
-#' @param obs_dat Dataframe containing observed Ct values.
+#' @param obs_dat Tibble of observed data. Contains two columns, t for time of sample
+#' collection and ct for the Ct values.
 #' @param CREATE_POSTERIOR_FUNC Creates the posterior function 
 #' used in the MCMC framework for detectable Ct values.
 #' @param INCIDENCE_FUNC Function that expects a vector of named parameters 
@@ -39,7 +40,7 @@ generate_viable_start_pars <- function(parTab,
                              use_pos=use_pos,
                              ...)
   ## Generates random values between lower and upper start
-  ##   defined in parTab
+  ## defined in parTab
   startTab <- lazymcmc::generate_start_tab(parTab)
   lik <- f(startTab$values)
   ## Ensures that startTab parameters return finite likelihood
