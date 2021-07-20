@@ -161,7 +161,7 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 
 #' Simulate full line list data
 #'
-#' Takes a vector of infection incidence and returns a tibble with line list data for all
+#' Takes a vector of infection incidence (absolute numbers) and returns a tibble with line list data for all
 #' individuals in the population. Infected individuals are assigned symptom onset, incubation 
 #' periods (if applicable) and confirmation delays from log normal and gamma distributions respectively.
 #'
@@ -169,13 +169,13 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 #' @param times Calendar time (i.e. days since the start of the epidemic).
 #' @param symp_frac Fraction of the population that is symptomatic. Defaults to 0.35.
 #' @param population_n Size of the population which equals the length of the incidence vector.
-#' @param incu_period_par1 The first parameter associated with the incubation period.
+#' @param incu_period_par1 The first parameter (meanLog) associated with the log-normal incubation period.
 #' Defaults to 1.621.
-#' @param incu_period_par2 The second parameter associated with the incubation period. 
+#' @param incu_period_par2 The second parameter (sdLog) associated with the log-normal incubation period. 
 #' Defaults to 0.418.
-#' @param conf_delay_par1 The first parameter associated with the confirmation delay. 
+#' @param conf_delay_par1 The first parameter (shape) associated with the discretized gamma confirmation delay. 
 #' Defaults to 5.
-#' @param conf_delay_par2 The second parameter associated with the confirmation delay.
+#' @param conf_delay_par2 The second parameter (rate) associated with the discretized gamma confirmation delay.
 #' Defaults to 2. 
 #'
 #' @return A tibble with line list data for all individuals in the population.
@@ -208,9 +208,9 @@ simulate_observations_wrapper <- function(
     mutate(is_symp=ifelse(is_infected, rbinom(n(), 1, symp_frac), 0)) %>%
     ## Symptom onset time from a log normal distribution
     mutate(incu_period=ifelse(is_infected & is_symp, rlnorm(n(), incu_period_par1, incu_period_par2), NA),
-           onset_time=infection_time+round(incu_period)) %>%
+           onset_time=infection_time+floor(incu_period)) %>%
     ## Confirmation time from a gamma distribution
-    mutate(confirmation_delay=extraDistr::rdgamma(n(),conf_delay_par1,conf_delay_par2))
+    mutate(confirmation_delay=extraDistr::rdgamma(n(),shape=conf_delay_par1,rate=conf_delay_par2))
   inc_dat
 }
 
@@ -525,9 +525,9 @@ simulate_viral_loads_wrapper <- function(linelist,
            ct = ifelse(sampled_time < infection_time, 1000, ct)) %>%
     ## Convert to viral load value and add noise to Ct
     mutate(vl = ((kinetics_pars["intercept"]-ct)/log2(10)) + kinetics_pars["LOD"],
-           days_since_infection = pmax(sampled_time - infection_time,-1),
+           days_since_infection = pmax(floor(incu_period + confirmation_delay),-1),
            sd_used = ifelse(days_since_infection > 0, kinetics_pars["obs_sd"]*sd_mod[days_since_infection],kinetics_pars["obs_sd"]),
-           ct_obs_sim = extraDistr::rgumbel(n(), ct, sd_used)) %>%
+           ct_obs_sim = round(extraDistr::rgumbel(n(), ct, sd_used),2)) %>%
     ## If some of the viral loads are greater than the intercept parameter, re-assign these
     ## values to equal the intercept (the maximum number of cycles run on the PCR machine, always
     ## assumed to be 40 in the simulations).
@@ -537,3 +537,105 @@ simulate_viral_loads_wrapper <- function(linelist,
   
   return(viral_loads=vl_dat)
 }
+
+
+#' This function simulates N Ct values per age in ages 
+#' and returns a dataframe of Ct values and ages. 
+#'  
+#' @param ages Vector of ages (days since infection).
+#' @param kinetics_pars Vector of named parameters for the viral kinetics model.
+#' @param N Number of observations to randomly generate per age;
+#' Set to 100 by default.
+#' 
+#' @return Dataframe of simulated Ct values and corresponding ages.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family viral load functions
+#' 
+#' @examples FIX ME
+#' 
+#' @export
+simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
+  t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
+  sd_mod <- rep(kinetics_pars["sd_mod"], max(ages))
+  unmod_vec <- 1:min(t_switch,max(ages))
+  sd_mod[unmod_vec] <- 1
+  decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
+  ## For the next sd_mod_wane days, variance about Ct trajectory decreases linearly
+  sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
+  
+  sim_dat <- matrix(ncol=N,nrow=length(ages))
+  for(age in ages){
+    ## For each value we're going to simulate, pre-determine if it will still be detectable or not
+    detectable_statuses <- rnbinom(N, 1, prob=kinetics_pars["prob_detect"]) + 
+      kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"]
+    cts <- rep(virosolver::viral_load_func(kinetics_pars, age, FALSE, 0),N)
+    cts[detectable_statuses <= age] <- 1000
+    sd_used <- kinetics_pars["obs_sd"]*sd_mod[age]
+    ## Generate N observations of Ct values from gumbel distribution for a specified mode
+    ct_obs_sim <- extraDistr::rgumbel(N, cts, sd_used)
+    ## Set Ct values greater than intercept to intercept value
+    ct_obs_sim <- pmin(ct_obs_sim, kinetics_pars["intercept"])
+    sim_dat[age,] <- ct_obs_sim
+  }
+  sim_dat <- data.frame(sim_dat)
+  colnames(sim_dat) <- 1:N
+  sim_dat$time_since_infection <- ages
+  sim_dat <- sim_dat %>% pivot_longer(-time_since_infection) %>% rename(ct=value,age=time_since_infection,i=name)
+  return(sim_dat)
+}
+
+
+#' Simulate N Ct values under symptom-based surveillance
+#' and returns a dataframe of Ct values and times since infection. 
+#'  
+#' @param ages Vector of ages (days since infection).
+#' @param kinetics_pars Vector of named parameters for the viral kinetics model.
+#' @param incu_par1 logMean of the log-normal incubation period distribution
+#' @param incu_par2 logSD of the log-normal incubation period distribution
+#' @param sampling_par1 shape of the discretized gamma sampling delay distribution 
+#' @param sampling_par2 rate of the discretized gamma sampling delay distribution 
+#' @param N Number of observations to randomly generate overall;
+#' Set to 100 by default.
+#' 
+#' @return Dataframe of simulated Ct values and corresponding ages.
+#' 
+#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @family viral load functions
+#' 
+#' @examples FIX ME
+#' 
+#' @export
+simulate_viral_loads_example_symptoms <- function(ages, kinetics_pars,
+                                                  incu_par1=1.621,incu_par2=0.418,
+                                                  sampling_par1=5,sampling_par2=1,
+                                                  N=100){
+  t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
+  sd_mod <- rep(kinetics_pars["sd_mod"], max(ages))
+  unmod_vec <- 1:min(t_switch,max(ages))
+  sd_mod[unmod_vec] <- 1
+  decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
+  ## For the next sd_mod_wane days, variance about Ct trajectory decreases linearly
+  sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
+  
+  modal_cts <- virosolver::viral_load_func(kinetics_pars, ages, FALSE, 0)
+  
+  ## Simulate an incubation period, sampling delay and time of undetectable for each individual
+  ## For each value we're going to simulate, pre-determine if it will still be detectable or not
+  detectable_statuses <- floor(rnbinom(N, 1, prob=kinetics_pars["prob_detect"]) + 
+    kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"])
+  incu_periods <- floor(rlnorm(N, incu_par1,incu_par2))
+  sampling_delays <- extraDistr::rdgamma(N, sampling_par1, sampling_par2)
+  days_since_infection <- incu_periods + sampling_delays
+  
+  sim_dat <- tibble(i=1:N, day_undetectable=detectable_statuses, incu_period=incu_periods,sampling_delay=sampling_delays,days_since_infection=days_since_infection)
+  
+  sim_dat <- sim_dat %>% group_by(i) %>%
+    mutate(modal_ct=modal_cts[days_since_infection+1]) %>%
+    mutate(ct_obs=extraDistr::rgumbel(n(), modal_ct, kinetics_pars["obs_sd"]*sd_mod[days_since_infection+1])) %>%
+    mutate(ct_obs=pmin(ct_obs, kinetics_pars["intercept"])) %>%
+    rename(age=days_since_infection)
+  
+  return(sim_dat)
+}
+

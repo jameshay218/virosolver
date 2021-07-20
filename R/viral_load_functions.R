@@ -88,8 +88,6 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
   sd_mod <- rep(pars["sd_mod"], max_age) ## Up until t_switch, full standard deviation
   
-
-  
   ## Prior to t_switch, sd=1
   unmod_vec <- 1:min(t_switch,max_age)
   sd_mod[unmod_vec] <- 1
@@ -104,65 +102,16 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
     ## Restrict ages to times occurring before 
     ## time of sample collection (single cross section)
     ages1 <- ages[(obs_time - ages) > 0]
-<<<<<<< HEAD
+    
     ## Returns the full probability density distribution to simulate from
-    densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod)  
-=======
     if(!symptom_surveillance){
-      densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod) ## FIX ME: is pred_dist_cpp still relevant?  
+      densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod) 
     } else {
       densities <- pred_dist_cpp_symptoms(test_cts, pars["max_incu_period"],pars["max_sampling_delay"], obs_time, pars, prob_infection,sd_mod)
     }
->>>>>>> f5a70dd60ef03d6aaef9b88b0dfec542fe5b6d5f
     comb_dat[[obs_time]] <- tibble(ct=test_cts,density=densities, t=obs_time)
   }
   comb_dat <- do.call("bind_rows",comb_dat)
   comb_dat
 
-}
-
-#' This function simulates N Ct values per age in ages 
-#' and returns a dataframe of Ct values and ages. 
-#'  
-#' @param ages Vector of ages (days since infection).
-#' @param kinetics_pars Vector of named parameters for the viral kinetics model.
-#' @param N Number of observations to randomly generate per age;
-#' Set to 100 by default.
-#' 
-#' @return Dataframe of simulated Ct values and corresponding ages.
-#' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
-#' @family viral load functions
-#' 
-#' @examples FIX ME
-#' 
-#' @export
-simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
-  t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
-  sd_mod <- rep(kinetics_pars["sd_mod"], max(ages))
-  unmod_vec <- 1:min(t_switch,max(ages))
-  sd_mod[unmod_vec] <- 1
-  decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
-  ## For the next sd_mod_wane days, variance about Ct trajectory decreases linearly
-  sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
-  
-  sim_dat <- matrix(ncol=N,nrow=length(ages))
-  for(age in ages){
-    ## For each value we're going to simulate, pre-determine if it will still be detectable or not
-    detectable_statuses <- rnbinom(N, 1, prob=kinetics_pars["prob_detect"]) + 
-      kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"]
-    cts <- rep(virosolver::viral_load_func(kinetics_pars, age, FALSE, 0),N)
-    cts[detectable_statuses <= age] <- 1000
-    sd_used <- kinetics_pars["obs_sd"]*sd_mod[age]
-    ## Generate N observations of Ct values from gumbel distribution for a specified mode
-    ct_obs_sim <- extraDistr::rgumbel(N, cts, sd_used)
-    ## Set Ct values greater than intercept to intercept value
-    ct_obs_sim <- pmin(ct_obs_sim, kinetics_pars["intercept"])
-    sim_dat[age,] <- ct_obs_sim
-  }
-  sim_dat <- data.frame(sim_dat)
-  colnames(sim_dat) <- 1:N
-  sim_dat$time_since_infection <- ages
-  sim_dat <- sim_dat %>% pivot_longer(-time_since_infection) %>% rename(ct=value,age=time_since_infection,i=name)
-  return(sim_dat)
 }
