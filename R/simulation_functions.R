@@ -168,7 +168,8 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 #' @param incidence A vector of infection incidence (absolute numbers).
 #' @param times Calendar time (i.e. days since the start of the epidemic).
 #' @param symp_frac Fraction of the population that is symptomatic. Defaults to 0.35.
-#' @param population_n Size of the population which equals the length of the incidence vector.
+#' @param population_n Size of the population. Defaults to 100,000. Must match the N used
+#' in the simulate_seir_process function.
 #' @param incu_period_par1 The first parameter (meanLog) associated with the log-normal incubation period.
 #' Defaults to 1.621.
 #' @param incu_period_par2 The second parameter (sdLog) associated with the log-normal incubation period. 
@@ -189,7 +190,7 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 
 simulate_observations_wrapper <- function(
   incidence, times, symp_frac=0.35,
-  population_n=length(incidence),
+  population_n=100000,
   incu_period_par1=1.621,incu_period_par2=0.418,
   conf_delay_par1=5,conf_delay_par2=2){
   
@@ -221,7 +222,7 @@ simulate_observations_wrapper <- function(
 #' 
 #' @param pars SEIR model parameters.
 #' @param times Times over which the model is solved.
-#' @param N Population size. Defaults to 1.
+#' @param N Population size. Defaults to 100000.
 #' 
 #' @return Returns a list of 7 things: 
 #' 1. Plot of all SEIR compartments over time
@@ -239,7 +240,7 @@ simulate_observations_wrapper <- function(
 #' 
 #' @export
 
-simulate_seir_process <- function(pars, times, N=1){
+simulate_seir_process <- function(pars, times, N=100000){
   ## Pull parameters for SEIR model
   seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
   ## Set up initial conditions.
