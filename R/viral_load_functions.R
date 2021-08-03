@@ -76,7 +76,6 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' 
 #' @export
 pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, symptom_surveillance=FALSE){
-  
   max_age <- length(ages)
   
   if(symptom_surveillance){
@@ -113,5 +112,4 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
   }
   comb_dat <- do.call("bind_rows",comb_dat)
   comb_dat
-
 }

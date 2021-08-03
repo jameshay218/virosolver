@@ -296,7 +296,7 @@ simulate_seir_process <- function(pars, times, N=100000){
   p_inc <- ggplot(data.frame(x=times,y=per_cap_inc,y1=per_cap_prev)) +
     geom_line(aes(x=x,y=y),col="red") +
     geom_line(aes(x=x,y=y1),col="blue") +
-    ylab("Per capita incidence (red) and prevalence (blue)") +
+    ylab("Per capita incidence (red)\n and prevalence (blue)") +
     xlab("Date") +
     theme_bw()
   
