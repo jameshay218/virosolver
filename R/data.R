@@ -83,7 +83,7 @@
 #' These are the simulated Ct values which are created in vignette 1 and used in vignette 2. 
 #' @docType data
 #' @usage data(vignette_data2)
-#' @format A data frame with 80000 rows and and 4 columns
+#' @format A data frame with 22237 rows and and 4 columns
 #' \describe{
 #'     \item{sampled_time}{Time of sample collection in days}
 #'     \item{Ct}{Ct values}
