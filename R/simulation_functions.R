@@ -16,8 +16,6 @@
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family simulation functions
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 
 simulate_viral_loads <- function(infection_times,
@@ -124,8 +122,6 @@ simulate_viral_loads <- function(infection_times,
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family simulation functions
 #' 
-#' @examples FIX ME
-#' 
 #'@export
 
 simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
@@ -183,8 +179,6 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family simulation functions
-#' 
-#' @examples FIX ME
 #'
 #' @export
 
@@ -235,8 +229,6 @@ simulate_observations_wrapper <- function(
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family simulation functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 
@@ -337,8 +329,6 @@ simulate_seir_process <- function(pars, times, N=100000){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family simulation functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 
@@ -496,8 +486,6 @@ simulate_reporting <- function(individuals,
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family simulation functions
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 
 simulate_viral_loads_wrapper <- function(linelist,
@@ -553,8 +541,6 @@ simulate_viral_loads_wrapper <- function(linelist,
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family viral load functions
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
   t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
@@ -603,8 +589,6 @@ simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family viral load functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 simulate_viral_loads_example_symptoms <- function(ages, kinetics_pars,

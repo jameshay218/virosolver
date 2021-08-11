@@ -128,8 +128,6 @@ create_posterior_func <- function(parTab,
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family create posterior functions
-#' 
-#' @examples FIX ME
 #'
 #' @export
 
@@ -190,8 +188,6 @@ create_post_func_seeirr <- function(parTab, data, ts, INCIDENCE_FUNC=detectable_
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family create posterior functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 
@@ -272,8 +268,6 @@ create_post_func_seeirr_combined <- function(parTab, data, ts, INCIDENCE_FUNC=de
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family create posterior functions
-#' 
-#' @examples FIX ME
 #'
 #' @export
 
