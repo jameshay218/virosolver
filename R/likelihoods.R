@@ -17,8 +17,6 @@
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 
 likelihood_cpp_wrapper <- function(obs_dat, ages, times,
@@ -87,8 +85,6 @@ likelihood_cpp_wrapper <- function(obs_dat, ages, times,
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 
 prob_detectable_curve <- function(pars, ages){
@@ -127,8 +123,6 @@ prob_detectable_curve <- function(pars, ages){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
-#' 
-#' @examples FIX ME
 #'
 #' @export
 
@@ -174,9 +168,6 @@ likelihood_detectable <- function(obs_dat, ages, pars, prob_infection){
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
 #' 
-#' @examples FIX ME
-#' 
-#' 
 #' @export
 
 p_a <- function(x, a, pars, viral_loads, sd_mod) {
@@ -205,8 +196,6 @@ p_a <- function(x, a, pars, viral_loads, sd_mod) {
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 
@@ -293,8 +282,6 @@ prop_detectable <- function(ages, pars, viral_loads){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
-#' 
-#' @examples FIX ME
 #'
 #' @export
 
@@ -363,8 +350,6 @@ likelihood_R <- function(obs_dat, ages, pars, prob_infection){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family likelihood functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 

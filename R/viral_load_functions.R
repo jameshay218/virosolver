@@ -12,8 +12,6 @@
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family viral load functions
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
   ## Days post infection until growth
@@ -71,8 +69,6 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' 
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family viral load functions
-#' 
-#' @examples FIX ME
 #' 
 #' @export
 pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, symptom_surveillance=FALSE){

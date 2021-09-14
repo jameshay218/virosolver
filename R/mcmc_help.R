@@ -24,8 +24,6 @@
 #' @author James Hay, \email{jhay@@hsph.harvard.edu}
 #' @family mcmc help
 #' 
-#' @examples FIX ME
-#' 
 #' @export
 generate_viable_start_pars <- function(parTab,
                                        obs_dat,
