@@ -140,13 +140,6 @@ NumericVector likelihood_cpp(NumericVector obs,
           prob_infection[obs_time-ages[j]-1]*
           prob_detectable_dat[ages[j]-1])/
             renormalizes[ages[j]-1]  ;
-
-        /*Rcpp::Rcout << "j: " << j << std::endl;
-        Rcpp::Rcout << "Prob: " << dgumbel_jh(obs[i], vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j]) << std::endl;
-        Rcpp::Rcout << "Inf: " << prob_infection[obs_time-ages[j]-1] << std::endl;
-        Rcpp::Rcout << "Detectable: " << prob_detectable_dat[ages[j]-1] << std::endl;
-        Rcpp::Rcout << "Renormalize: " << renormalizes[ages[j]-1] << std::endl;
-         */
       }
     }
     liks_tj[i] = log(liks_tj[i]);
