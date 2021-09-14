@@ -349,3 +349,16 @@ select_filters <- function(data) {
   }
   return(filter_follows)
 }
+
+## Plot trace and density plots for the given MCMC chains
+plot_mcmc_chains_tab <- function(mcmc_chains){
+  if(is.null(mcmc_chains))
+    return(NULL)
+  p1 <- ggplot(mcmc_chains[[1]]) + geom_line(aes(x=sampno,y=value,col=chain)) +
+    facet_wrap(~variable,scales="free_y",ncol=1)
+  
+  p2 <- ggplot(mcmc_chains[[1]]) + geom_density(aes(x=value,fill=chain),alpha=0.25) +
+    facet_wrap(~variable,scales="free",ncol=1)
+  
+  p1|p2
+}

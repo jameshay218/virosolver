@@ -92,7 +92,8 @@ mcmc_content <- function(table=TRUE) {
                            column(4,numericInput(inputId="mcmc_save_block",label="Disk write frequency",
                                                  value=1000,min=1,max=100000000,step=1)),
                            column(4,numericInput(inputId="mcmc_opt_freq",label="Proposal optimization frequency",
-                                                 value=2000,min=100,max=100000000,step=1))
+                                                 value=2000,min=100,max=100000000,step=1)),
+                           column(4, checkboxInput("mutlivariate_mcmc","Multivariate proposals",value=FALSE))
                          )
                 )
     )

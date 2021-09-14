@@ -81,7 +81,7 @@ viro_server <- function(input, output, session) {
   ## Reads in the MCMC chains and converts them to the correct MCMC objects etc
   upload_chains <- reactive({
     chain_file <- input$mcmc_chains_files
-    read_mcmc_chains_tab(chain_file,mcmc_1xs)
+    read_mcmc_chains_tab(chain_file,mcmc_1xs,input)
   })
   output$mcmc_chain_head <- renderTable({
     mcmc_chains <- upload_chains()
@@ -91,15 +91,7 @@ viro_server <- function(input, output, session) {
   })
   output$mcmc_chain_trace <- renderPlot({
     mcmc_chains <- upload_chains()
-    if(is.null(mcmc_chains))
-      return(NULL)
-    p1 <- ggplot(mcmc_chains[[1]]) + geom_line(aes(x=sampno,y=value,col=chain)) +
-      facet_wrap(~variable,scales="free_y",ncol=1)
-    
-    p2 <- ggplot(mcmc_chains[[1]]) + geom_density(aes(x=value,fill=chain),alpha=0.25) +
-      facet_wrap(~variable,scales="free",ncol=1)
-    
-    p1|p2
+    plot_mcmc_chains_tab(mcmc_chains)
   })
   
 }
