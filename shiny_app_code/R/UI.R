@@ -1,6 +1,11 @@
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 rootdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 
+## Load in helper functions
+source(paste0(rootdir,"/helpers/plots.R"))
+source(paste0(rootdir,"/helpers/mcmc_helpers.R"))
+source(paste0(rootdir,"/helpers/vk_helpers.R"))
+source(paste0(rootdir,"/helpers/file_management.R"))
 
 ## Load in UI panels
 source(paste0(rootdir,"/panels/data_visualization.R"))
@@ -10,11 +15,7 @@ source(paste0(rootdir,"/panels/mcmc_params.R"))
 source(paste0(rootdir,"/panels/run_model.R"))
 source(paste0(rootdir,"/panels/primary_output.R"))
 
-## Load in helper functions
-source(paste0(rootdir,"/helpers/plots.R"))
-source(paste0(rootdir,"/helpers/mcmc_helpers.R"))
-source(paste0(rootdir,"/helpers/vk_helpers.R"))
-source(paste0(rootdir,"/helpers/file_management.R"))
+
 
 viro_UI <- shinyUI ({
   fluidPage(

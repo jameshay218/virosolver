@@ -79,34 +79,27 @@ viro_server <- function(input, output, session) {
   
   ## Upload Markov Chains 
   ## Reads in the MCMC chains and converts them to the correct MCMC objects etc
-  output$uploaded_chains <- eventReactive(input$mcmc_chains_files, {
-    print(input$mcmc_chains_files$datapath)
-    
-    mcmc_chains <- lazymcmc::load_mcmc_chains(input$mcmc_chains_files$datapath,unfixed=TRUE,thin=1,
-                                              burnin=0,multi=FALSE,chainNo=TRUE)
-    print(head(mcmc_chains[[1]]))
-    
+  upload_chains <- reactive({
+    chain_file <- input$mcmc_chains_files
+    read_mcmc_chains_tab(chain_file,mcmc_1xs)
   })
-  #output$uploaded_chains <- observe({
-   # input$mcmc_chains_files
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, head of that data file by default,
-    # or all rows if selected, will be shown.
+  output$mcmc_chain_head <- renderTable({
+    mcmc_chains <- upload_chains()
+    if(is.null(mcmc_chains))
+      return(NULL)
+    head(mcmc_chains[[1]])
+  })
+  output$mcmc_chain_trace <- renderPlot({
+    mcmc_chains <- upload_chains()
+    if(is.null(mcmc_chains))
+      return(NULL)
+    p1 <- ggplot(mcmc_chains[[1]]) + geom_line(aes(x=sampno,y=value,col=chain)) +
+      facet_wrap(~variable,scales="free_y",ncol=1)
     
-    #req(input$file1)
+    p2 <- ggplot(mcmc_chains[[1]]) + geom_density(aes(x=value,fill=chain),alpha=0.25) +
+      facet_wrap(~variable,scales="free",ncol=1)
     
-    #df <- read.csv(input$file1$datapath,
-      #             header = input$header,
-      #             sep = input$sep,
-      #             quote = input$quote)
-    
-    #if(input$disp == "head") {
-    #  return(head(df))
-    #}
-    #else {
-    #  return(df)
-    #}
-  #})
-  
+    p1|p2
+  })
   
 }
