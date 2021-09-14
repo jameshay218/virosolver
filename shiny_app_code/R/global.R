@@ -1,24 +1,3 @@
-library(shiny)
-library(dplyr)
-library(magrittr)
-library(tidyverse)
-library(lubridate)
-library(patchwork)
-library(ggpubr)
-library(ggplot2)
-library(devtools)
-library(bsplus)
-library(slickR)
-library(svglite)
-library(hash)
-library(MMWRweek)
-library(plotly)
-library(virosolver)
-library(DT)
-library(shinyBS)
-library(purrr)
-library(rstudioapi)
-
 packages <- c("shiny","dplyr","magrittr","tidyverse",
               "lubridate","patchwork","ggpubr",
               "ggplot2","devtools","bsplus",
@@ -26,7 +5,7 @@ packages <- c("shiny","dplyr","magrittr","tidyverse",
               "slickR","svglite","hash","MMWRweek",
               "plotly","virosolver","DT","shinyBS",
               "rhandsontable","lazymcmc","foreach",
-              "future")
+              "future","shinyFiles")
 
 ## Now load or install&load all
 package.check <- lapply(
