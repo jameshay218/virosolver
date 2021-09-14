@@ -1,12 +1,13 @@
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 rootdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 
-source(paste0(rootdir,"/panels/data_visualization.R"))
 source(paste0(rootdir,"/helpers/plots.R"))
+source(paste0(rootdir,"/panels/data_visualization.R"))
 source(paste0(rootdir,"/panels/overview.R"))
 source(paste0(rootdir,"/panels/viral_kinetics.R"))
 source(paste0(rootdir,"/panels/mcmc_params.R"))
 source(paste0(rootdir,"/helpers/mcmc_helpers.R"))
+source(paste0(rootdir,"/helpers/vk_helpers.R"))
 source(paste0(rootdir,"/panels/run_model.R"))
 source(paste0(rootdir,"/panels/primary_output.R"))
 

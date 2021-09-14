@@ -83,7 +83,7 @@ vis_content <- function(id, data) {
   }
 
 
-vis_tab <- tabPanel("Data Visualization", value="vis_tab", vis_content("data_vis",india_data))
+vis_tab <- tabPanel("Data Visualization", value="vis_tab", vis_content("data_vis",sample_epiDat))
 
 
 ## Server-side code
@@ -148,7 +148,7 @@ load_data_vis <- function(id) {
       })
       
       observeEvent(input$rightSlide, {
-        browser()
+        #browser()
         plot.info$slideno = plot.info$slideno - 1 
         indexNo <- (plot.info$slideno %% length(rv$plots)) + 1
         plot.info$ggplot = rv$plots[[indexNo]]
