@@ -10,40 +10,41 @@ mcmcup_content <- function() {
       sidebarPanel(
         
         # Input: Select a file ----
-        fileInput("file1", "Upload Markov Chains (.csv)",
+        fileInput("mcmc_chains_files", "Upload Markov Chains (.csv)",
                   multiple = TRUE,
                   accept = c("text/csv",
                              "text/comma-separated-values,text/plain",
                              ".csv")),
+        #shinyDirButton('mcmc_chain_folder', 'Select a folder', 'Please select a folder', FALSE),
         
         # Horizontal line ----
         tags$hr(),
         
         # Input: Checkbox if file has header ----
-        checkboxInput("header", "Header", TRUE),
+        #checkboxInput("header", "Header", TRUE),
         
         # Input: Select separator ----
-        radioButtons("sep", "Separator",
-                     choices = c(Comma = ",",
-                                 Semicolon = ";",
-                                 Tab = "\t"),
-                     selected = ","),
+        #radioButtons("sep", "Separator",
+         #            choices = c(Comma = ",",
+        #                         Semicolon = ";",
+        #                         Tab = "\t"),
+        #             selected = ","),
         
         # Input: Select quotes ----
-        radioButtons("quote", "Quote",
-                     choices = c(None = "",
-                                 "Double Quote" = '"',
-                                 "Single Quote" = "'"),
-                     selected = '"'),
+        #radioButtons("quote", "Quote",
+        #             choices = c(None = "",
+        #                         "Double Quote" = '"',
+        #                         "Single Quote" = "'"),
+        #             selected = '"'),
         
         # Horizontal line ----
-        tags$hr(),
+        #tags$hr(),
         
         # Input: Select number of rows to display ----
-        radioButtons("disp", "Display",
-                     choices = c(Head = "head",
-                                 All = "all"),
-                     selected = "head")
+        #radioButtons("disp", "Display",
+        #             choices = c(Head = "head",
+        #                         All = "all"),
+        #             selected = "head")
         
       ),
       

@@ -78,8 +78,17 @@ viro_server <- function(input, output, session) {
   })
   
   ## Upload Markov Chains 
-  #output$uploaded_chains <- renderTable({
+  ## Reads in the MCMC chains and converts them to the correct MCMC objects etc
+  output$uploaded_chains <- eventReactive(input$mcmc_chains_files, {
+    print(input$mcmc_chains_files$datapath)
     
+    mcmc_chains <- lazymcmc::load_mcmc_chains(input$mcmc_chains_files$datapath,unfixed=TRUE,thin=1,
+                                              burnin=0,multi=FALSE,chainNo=TRUE)
+    print(head(mcmc_chains[[1]]))
+    
+  })
+  #output$uploaded_chains <- observe({
+   # input$mcmc_chains_files
     # input$file1 will be NULL initially. After the user selects
     # and uploads a file, head of that data file by default,
     # or all rows if selected, will be shown.
@@ -97,7 +106,6 @@ viro_server <- function(input, output, session) {
     #else {
     #  return(df)
     #}
-    
   #})
   
   
