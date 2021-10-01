@@ -2,8 +2,7 @@
 
 ## emake_long()
 ## Convert epidemic trajectory data into long format
-## FIXME: Add flag here for pre-converted data
-## FIXME: REQUIRES case_column (Default name="cases")
+## FIXME: this function assumes all numeric columns pertain to case counts. 
 emake_long <- function (data=sample_epiDat, filters=hash(), 
                         case_col="cases") 
   {
@@ -39,44 +38,68 @@ emake_long <- function (data=sample_epiDat, filters=hash(),
 ## Options for filtering are selected from unique data values
 ## from the given column. 
 ## This function is called from within the get_optionsfunction. 
-get_unique_subs <- function(data, col) {
+get_unique_subs <- function(data, col,ns, numeric=FALSE) {
   unique_items <- unique(data[[col]])
-  unique_items <- sort(c("All (No Filtering)",unique_items[!is.na(unique_items)]))
+  unique_items <- sort(unique_items[!is.na(unique_items)])
   obj_name <- paste0(col, "_options") ##FIXME: not checking for duplicate column names 
-  choice_obj <- selectInput(paste(obj_name), paste("Select ", col, "value for filtering:"), unique_items)
+  if (numeric) {
+    if (is.null(unique_items)) {
+      return()
+    }
+    start = unique_items[1]
+    stop = unique_items[length(unique_items)]
+    choice_obj <- tags$div(
+      'id'=ns(paste(obj_name)),
+      sliderInput(
+        inputId = ns(paste(obj_name)), 
+        label = paste("Select", col, " range: "), 
+        value= c(start,stop),
+        min = start,
+        max = stop,
+        step = (stop - start) / 10
+      )
+    )
+  }
+  else {
+    choice_obj <- tags$div(
+      'id'=ns(paste(obj_name)),
+      pickerInput(
+        inputId = ns(paste(obj_name)), 
+        label = paste("Select ", col, " value for filtering: "), 
+        choices =  c("",unique_items), options = list(`actions-box` = TRUE), 
+        selected="",
+        multiple = TRUE
+      )
+    )
+  }
+  
   choice_cmpd<-list(obj_name, choice_obj)
   return(choice_cmpd)
 }
 
 ## get_options()
-## This function takes in a dataframe and
+## This function takes in a dataframe and a list
+## of columns to filter on and
 ## returns a list of UI selectInput objects 
 ## corresponding to each character column
 ## present in the dataframe. 
-get_options <- function(data) {
-  col_names <- colnames(data)
+get_options <- function(data,cols,ns) {
+  col_names <- cols
   choices <- list()
   obj_names <- c()
   for (col in col_names) {
     if (is.character(data[[col]])) {
-      choices <- list(choices, get_unique_subs(data, col))
+      choices <- list(choices, get_unique_subs(data, col,ns=ns))
+      obj_names <- c(obj_names, paste0(col,"_options"))
+    }
+    if (is.numeric(data[[col]])) {
+      choices <- list(choices, get_unique_subs(data, col,ns=ns, numeric=TRUE))
       obj_names <- c(obj_names, paste0(col,"_options"))
     }
   }
   return(list(choices,obj_names))
 } 
 
-## Test Dropdown menus FIXME: maybe cleaner to just load dynamic 2nd select input box! 
-get_dropdown <- function() {
-  dropdown(
-    tags$h3("dropdown menu test"),
-    
-    pickerInput(inputId='dd1',
-                label='test var',
-                choices = c("choice1","choice2","choice3"),
-                options=list('style'="btn-info"))
-  )
-}
 
 ## emake_grs()
 ## Calculates growth rate as a log ratio of 
@@ -92,13 +115,13 @@ emake_grs <- function(data_long) { ##FIXME: NaN warnings!
 
 ## plot_cases()
 ## Plot incident cases per reporting date
-## FIXME: Requires "Date" column ... this could be set by user but no UI exists for that
+## India data specific 
 plot_cases <- function(epi_dat_long,filters=NULL, 
                        type_filters=c("Confirmed","Deceased")) {
   data_long <- epi_dat_long
   filter_choices <- filters
   ggplot(data_long %>% filter(Type %in% type_filters)) +
-    geom_line(aes(x=Date,y=cases_7day,col=Type)) +
+    geom_line(aes(x=date,y=cases_7day,col=Type)) +
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values=type_filters) +  #FIXME: hardcoding -- India-data specific 
     ylab("New cases") +
@@ -107,46 +130,38 @@ plot_cases <- function(epi_dat_long,filters=NULL,
     facet_wrap(~Type,scales="free")
 }
 
-### BELOW NOT USED ######
-plot_grs <- function(data_long,grs_data, region_name="Delhi, India") {
-  data_long <- emake_long(data) ## FIXME: this should be run elsewhere
-  grs_data <- emake_grs(data_long) ## FIXME: this should be run elsewhere
-  ggplot(grs_data %>% filter(Type %in% c("Confirmed","Deceased"))) +
-    geom_hline(yintercept=0,linetype="dashed",col="black",size=0.75) +
-    geom_line(aes(x=Date,y=gr,col=Type),size=0.5,alpha=0.5) +
-    geom_smooth(aes(x=Date,y=gr,col=Type,fill=Type),span=0.2,alpha=0.25) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_color_manual(values=c("Confirmed"="blue","Deceased"="orange")) +
-    scale_fill_manual(values=c("Confirmed"="blue","Deceased"="orange")) +
-    ylab("Growth rate") +
-    xlab("Reporting date") +
-    ggtitle(paste0("Growth rate cases over time in district of ", region_name ,"FILTERED BY: ")) +
-    coord_cartesian(ylim=c(-0.25,0.25)) +
-    facet_wrap(~Type)
-}
-
-plot_epi <- function(case_plot, grs_plot) { return(case_plot/grs_plot)}
-#### ABOVE NOT USED ####### 
-
 ### Ct Data
 
 ## ctmake_long()
 ## Requires EXACTLY ONE date column
-## If gene is present, column MUST be called gene. Not accounted for in UI.
-## FIXME: some of this is still india data specific 
-ctmake_long <- function(ct_dat, filters=hash(),ct_thresh=35) {
-  colnames(ct_dat) <- c("id","date","age_gender","remarks","E","N")
-  #pivot_cols <- colnames(ct_dat[, sapply(ct_dat, class) %in% c('character', 'factor','Date')])
+ctmake_long <- function(ct_dat, filters=hash(),ct_cols=c('E-Gene','Rdrp/N'), ct_thresh=35) { # Remarks
+  colnames(ct_dat) <-  tolower(colnames(ct_dat))
+  colnames(ct_dat)[1] <- 'id' #FIXME:REQUIRES FIRST COLUMN TO BE ID! 
   date_col <- colnames(ct_dat[, sapply(ct_dat, class) %in% c('Date')]) #requires exactly 1 date column
+  colnames(ct_dat)[colnames(ct_dat) == date_col] <- 'date'
   
   ## if not formatted as date, requires date column to be called "date"
   if(identical(date_col,character(0))) { date_col <- colnames(ct_dat)[tolower(colnames(ct_dat)) == "date"]} 
-  #pivot_cols <- c(pivot_cols,date_col)
-  #pivot_cols <- pivot_cols[pivot_cols!="gene"] #requires gene column to be called gene; not accounted for in UI
+  colnames(ct_dat)[colnames(ct_dat) == date_col] <- 'date'
+  date_col <- 'date'
   ct_dat[[date_col]] <- mdy(ct_dat[[date_col]])
-  
+  stry_cols <- colnames(ct_dat)[!colnames(ct_dat) %in% tolower(ct_cols)]
+  ct_dat_long <- ct_dat %>% pivot_longer(-tolower(stry_cols))
+
+  for (filter in ls(filters)) {
+    if (!is.null(filter)) {
+      val <- filters[[filter]]
+      filter <-  tolower(str_split(filter,'_options')[[1]][1])
+      if (is.character(val)) { ct_dat_long <- ct_dat_long %>% filter(!!rlang::sym(filter) == rlang::sym(val)) }
+      else if (is.vector(val) & (filter %in% tolower(ct_cols))) { ct_dat_long <- ct_dat_long %>% filter( name == rlang::sym(filter) &
+                                                         value >= val[1] & 
+                                                         value <= val[2]) } ## FIXME: currently only filters one at a time! 
+      else if (is.vector(val)) { ct_dat_long <- ct_dat_long %>% filter(!!rlang::sym(filter) >= val[1] & 
+                                                                    !!rlang::sym(filter) >= val[2]) }
+    }
+  }
   ## Only look at Cts <= thresh
-  ct_dat_long <- ct_dat %>% pivot_longer(-c(id,date,age_gender,remarks)) %>% #pivot_longer(-pivot_cols) %>% 
+  ct_dat_long <- ct_dat_long %>%         #ct_dat_long %>% pivot_longer(-c(id,date,age_gender,remarks)) %>% #pivot_longer(-pivot_cols) %>% 
     rename(gene=name,Ct=value) %>% 
     filter(Ct <= ct_thresh) %>%
     mutate(Ct_round=round(Ct, 0))
@@ -154,8 +169,8 @@ ctmake_long <- function(ct_dat, filters=hash(),ct_thresh=35) {
   return(ct_dat_long)
 }
 
+## Plots Cts for each gene over time
 plot_ct_raw <- function(ct_dat_long) {
-  ## Plot N gene all Cts over time
   p_raw <- ct_dat_long %>% ggplot() + 
     geom_point(aes(x=date,y=Ct_round),size=0.25,alpha=0.25) + 
     geom_smooth(aes(x=date,y=Ct_round)) + 
@@ -165,7 +180,7 @@ plot_ct_raw <- function(ct_dat_long) {
     xlab("Date") +
     ylab("Ct") +
     theme_classic() +
-    facet_wrap(~gene, nrow=2)
+    facet_wrap(~gene, nrow=2) #fixme: should be unique number of genes! 
 }
 
 summarize_ct <- function(ct_dat_long) {
@@ -261,22 +276,37 @@ p_mean_time <- function(comb_dat) {
 }
 
 p_skew_time <- function(comb_dat) {
-  my_x_axis <- scale_x_date(limits=as.Date(c("2020-10-01","2021-06-05")),breaks = "14 days")
-  comb_dat %>% filter(gene=="E") %>% 
-    ggplot(aes(x=date,y=skew_ct)) + 
-    geom_point() +
-    geom_smooth(span=0.2) +
-    scale_y_continuous(limits=c(-1.5,1.5),breaks=seq(-1.5,1.5,by=0.5)) +
-    ylab("Skewness of N Ct") +
-    xlab("Date") +
-    theme_classic() +
-    my_x_axis +
-    theme(axis.text.x=element_text(angle=45,hjust=1))
+  #browser()
+  dates <- sort(comb_dat$date)
+  if (!is.null(dates)) { 
+    start_date <- dates[1]
+    end_date <- tail(dates,1)
+  }
+  my_x_axis <- scale_x_date(limits=as.Date(c(start_date-10,end_date+10)),breaks = "14 days")
+  plots <- list()
+  for (gene_choice in unique(comb_dat$gene)) { 
+      skew_plot <- ggplot(comb_dat %>% filter(gene==gene_choice),aes(x=date,y=skew_ct)) + 
+      geom_point() +
+      geom_smooth(span=0.2) +
+      scale_y_continuous(limits=c(-1.5,1.5),breaks=seq(-1.5,1.5,by=0.5)) +
+      ylab(paste0("Skewness of ",gene_choice," Ct"))+
+      xlab("Date") +
+      theme_classic() +
+      my_x_axis +
+      theme(axis.text.x=element_text(angle=45,hjust=1))
+      plots <- append(plots, skew_plot)
+  }
+  plots
 }
 
-p_cases_confirmed <- function(data_long, comb_dat) { 
+p_cases_confirmed <- function(data_long, comb_dat) {
   data_long <- data_long %>% rename(date=Date)
-  my_x_axis <- scale_x_date(limits=as.Date(c("2020-10-01","2021-06-05")),breaks = "14 days")
+  dates <- sort(comb_dat$date)
+  if (!is.null(dates)) { 
+    start_date <- dates[1]
+    end_date <- tail(dates,1)
+  }
+  my_x_axis <- scale_x_date(limits=as.Date(c(start_date-10,end_date+10)),breaks = "14 days")
   ggplot(data_long %>% 
            filter(Type %in% c("Confirmed"))%>%
            filter(date >= min(comb_dat$date))) +
@@ -291,9 +321,14 @@ p_cases_confirmed <- function(data_long, comb_dat) {
 ## india data; there is no element to set date bounds in th UI as of 
 ## yet, but these will need to be changed. 
 p_gr_confirmed <- function(data_grs, comb_dat) {
-  my_x_axis <- scale_x_date(limits=as.Date(c("2020-10-01","2021-06-05")),breaks = "14 days")
+  dates <- sort(comb_dat$date)
+  if (!is.null(dates)) { 
+    start_date <- dates[1]
+    end_date <- tail(dates,1)
+  }
+  my_x_axis <- scale_x_date(limits=as.Date(c(start_date-10,end_date+10)),breaks = "14 days")
   ggplot(data_grs %>% 
-           filter(Type %in% c("Confirmed"))%>%
+           #filter(Type %in% c("Confirmed"))%>%
            filter(date >= min(comb_dat$date)),
          aes(x=date,y=gr)) +
     geom_hline(yintercept=0,linetype="dashed",col="black",size=0.75) +
@@ -309,8 +344,15 @@ combine_plots <- function(p_cases_confirmed,p_gr_confirmed,p_mean_time,p_skew_ti
   p_main1 <- p_cases_confirmed/p_gr_confirmed/p_mean_time/p_skew_time
 }
 
-violin_plots <- function(comb_dat, ct_dat_long, data_grs) {
-  make_calendar <- seq(as.Date("2020-09-01"),as.Date("2021-07-01"),by="1 day")
+violin_plots <- function(comb_dat, ct_dat_long, data_grs, 
+                         #start_date="2020-09-01",end_date="2021-07-01",
+                         gene_choice="rdrp/n") {
+  dates <- sort(ct_dat_long$date)
+  if (!is.null(dates)) { 
+    start_date <- dates[1]
+    end_date <- tail(dates,1)
+  }
+  make_calendar <- seq(as.Date(start_date-10),as.Date(end_date+10),by="1 day")
   made_calendar <- as_tibble(cbind(make_calendar,MMWRweek(make_calendar))) %>% rename(date=make_calendar)
   epi_cal <- made_calendar %>% group_by(MMWRyear,MMWRweek) %>% mutate(min_date=min(date))
   ## Get Epi calendar dates
@@ -320,45 +362,18 @@ violin_plots <- function(comb_dat, ct_dat_long, data_grs) {
   epi_cal <- epi_cal %>% group_by(EpiWeek) %>% mutate(min_date=min(date))
   epi_week_dat <- left_join(ct_dat_long,epi_cal)
   
-  p_violins <- ggplot(epi_week_dat %>% filter(gene == "N")) +
-    geom_violin(aes(x=min_date,y=Ct_round,group=min_date),scale="width",width=5,fill="grey70",draw_quantiles=c(0.025,0.5,0.975),alpha=0.5) +
-    geom_smooth(aes(x=min_date,y=Ct_round),span=0.2) +
-    scale_y_continuous(trans="reverse") +
-    scale_x_date(breaks="1 month",limits=as.Date(c("2020-10-01","2021-06-05"))) +
-    ylab("N gene Ct distribution") +
-    xlab("Date grouped by epi week") +
-    theme_classic()
-}
-
-
-## Filtering Functions FIXME: To be moved ## 
-## filter_req()
-## gather dynamic choice names for filtering 
-filter_req <-  function(data){
-  choices <- get_options(data)[2]
-  return(choices)
-}
-
-select_filters <- function(data) {
-  filter_options <- get_options(data)[2]
-  filter_follows <- list()
-  for(option in filter_options[[1]]) {
-    follow <- observeEvent(paste("input[[",option,"]]"),
-                           showNotification(paste(option," value changed from NULL to ", "input[[",option,"]]")))
-    filter_follows <- list(filter_follows,follow)
+  plots <- list()
+  for (gene_choice in unique(comb_dat$gene)) { 
+    p_violins <- ggplot(epi_week_dat %>% filter(gene == gene_choice)) +
+      geom_violin(aes(x=min_date,y=Ct_round,group=min_date),scale="width",width=5,fill="grey70",draw_quantiles=c(0.025,0.5,0.975),alpha=0.5) +
+      geom_smooth(aes(x=min_date,y=Ct_round),span=0.2) +
+      scale_y_continuous(trans="reverse") +
+      scale_x_date(breaks="1 month",limits=as.Date(c(start_date,end_date))) +
+      ylab(paste0(gene_choice, " Ct distribution")) +
+      xlab("Date grouped by epi week") +
+      theme_classic()
+    plots <- append(plots,p_violins)
+  
   }
-  return(filter_follows)
-}
-
-## Plot trace and density plots for the given MCMC chains
-plot_mcmc_chains_tab <- function(mcmc_chains){
-  if(is.null(mcmc_chains))
-    return(NULL)
-  p1 <- ggplot(mcmc_chains[[1]]) + geom_line(aes(x=sampno,y=value,col=chain)) +
-    facet_wrap(~variable,scales="free_y",ncol=1)
-  
-  p2 <- ggplot(mcmc_chains[[1]]) + geom_density(aes(x=value,fill=chain),alpha=0.25) +
-    facet_wrap(~variable,scales="free",ncol=1)
-  
-  p1|p2
+  plots
 }

@@ -2,18 +2,31 @@
 ## and selected filters (in the form of a hash table) and returns a 
 ## list object containing ct-specific plots in slot 2 and epi-specific 
 ## plots in slot 1. 
-dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat, filters=hash::hash() ) {
-  ## filter data appropriately given filters
-  if (!is.empty(filters)) { 
-    ct_dat_long <- ctmake_long(ct_dat)
+
+source(paste0(rootdir,"/helpers/plots.R"))
+source(paste0(rootdir,"/global.R"))
+
+## This function takes in either the default or user-uploaded 
+## Ct value dataframe, epidemic demographic dataframe, 
+## and the selected filters to be applied to each dataframe.
+##
+## This function creates all necessary graphs for the data 
+## visualization page and returns them in list format. 
+dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
+                     ct_filters=hash::hash(), epi_filters=hash::hash() ) {
+  ## Filter data appropriately given user input 
+  if (!is.empty(ct_filters)) {
+    ct_dat_long <- ctmake_long(ct_dat=ct_dat, filters=ct_filters)
     ct_summ <- summarize_ct(ct_dat_long)
     e_dat_list <- emake_long(epi_dat)
     epi_dat_long <- e_dat_list[[1]] ## Indexing necessary
-    epi_filters <- e_dat_list[[2]]
+    epi_filters <- e_dat_list[[2]] 
     grs_dat <- emake_grs(epi_dat_long)
+    ##NOTE: Epi tab filtering not currently in place. 
     grs_plot <- plot_cases(epi_dat_long, epi_filters)
+    comb_dat <- combine_vis_dat(ct_dat_long, ct_summ, grs_dat, epi_dat_long)
   }
-  ## format data
+  ## Prepare daata without filters. 
   else { 
     ct_dat_long <- ctmake_long(ct_dat)
     ct_summ <- summarize_ct(ct_dat_long)
@@ -21,7 +34,7 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat, filters=hash::h
     epi_dat_long <- e_dat_list[[1]] ## Indexing necessary
     epi_filters <- e_dat_list[[2]]
     grs_dat <- emake_grs(epi_dat_long)
-    grs_plot <- plot_cases(epi_dat_long, epi_filters) #missing: type_filters
+    grs_plot <- plot_cases(epi_dat_long, epi_filters)
     comb_dat <- combine_vis_dat(ct_dat_long, ct_summ, grs_dat, epi_dat_long)
   }
   
@@ -36,38 +49,79 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat, filters=hash::h
   #pgr_conf <- p_gr_confirmed(grs_dat, comb_dat) FIXME: issue w grs_dat - unresolved 
   vi_plot <- violin_plots(comb_dat, ct_dat_long)
   epi_plots <- list(pb_scat,pm_time,ps_time,pc_conf)
-  ct_plots <- list(ct_plot_raw,ct_plot_mean,ct_plot_skew,vi_plot)
+  #epi_plots <- append(epi_plots,pc_conf) ## FIXME: Displays only one plot of list
+  ct_plots <- list(ct_plot_raw,ct_plot_mean,ct_plot_skew, vi_plot)
+  #ct_plots <- append(ct_plots,vi_plot)
   plots <-list(epi_plots,ct_plots)
   return(plots)
 }
+## This function creates the initial dropdown selector UI for 
+## the user to choose which columns they would like to filter on 
+## for both the Ct and Epi tab of the data visualization page. 
+show_filtercandidates <- function(data,epi=FALSE, ns) {
+  candidates <- colnames(data[, sapply(data, class) %in% c('character', 'factor','numeric','Date')])
+  if (epi==FALSE) {id="ctfilter_candidates"}
+  else {id="epifilter_candidates"}
+  
+  pickerInput(
+    inputId = ns(id), 
+    label = "Select/deselect all options", 
+    choices = sort(candidates), options = list(`actions-box` = TRUE), 
+    multiple = TRUE
+  )
+}
 
-## Returns data visualization main UI content
-vis_content <- function(id, data) {
-  ns <- NS(id) # Namespace function is necessary to module-ize server-side code
-  filter_options <- get_options(data)[1]
-  filter_names <- filter_req(data)
+## This function  creates the UI that
+## allows the user to indicate which 
+## columns contain Ct values (multiple allowed). 
+## It is necessary for accurate data manipulation. 
+show_ctcandidates <- function(data,ns) {
+  candidates <- colnames(data[, sapply(data, class) %in% c('numeric')])
+  id="assay_cols"
+  pickerInput(
+    inputId = ns(id), 
+    label = "Please indicate which column(s) contain(s) Ct values", 
+    choices = sort(candidates), options = list(`actions-box` = TRUE), 
+    multiple = TRUE
+  )
+}
+
+## This function creates UI selector objects for 
+## selected filter-on columns 
+show_filtervals <- function(data, cols, epi=FALSE, ns) {
+  get_options(data,cols,ns=ns)[1]
+}
+
+## This function returns data visualization main UI content
+vis_content <- function(id, ct_data=sample_ctDat, epi_data=sample_epiDat) {
+  ns <- NS(id) # Namespace function is necessary to modularize server-side code
   content <- fluidRow(
+    useShinyjs(),
      tabsetPanel(id=ns("dv_tabs"),
                  tabPanel(value="ct_panel", title="Ct View",
                    column(3,
                      wellPanel(
                             fileInput(ns("data2"),"Upload PCR-RT Ct Data (CSV)",  accept=".csv"),
-                            filter_options,
-                            actionButton(ns("filter_sub"),"Filter by Selected Values"),
-                            downloadButton(id=ns("dp1"),"Download Plots")
+                            show_filtercandidates(ct_data,ns=ns),
+                            show_ctcandidates(ct_data, ns=ns),
+                            verbatimTextOutput(ns("test20")),
+                            div(id="placeholder"),#Necessary for updating the DOM using this div as a reference
+                            actionButton(ns("filter_sub"),"Filter Data"),
+                            downloadButton(id=ns("dp1"),"Download Plots") # FIXME: the download button is not fully functional 
                             )),
                    column(9,
                           splitLayout(cellWidths = (c("5%","90%","5%")),
                           actionButton(ns("leftSlide"),"", icon=icon("arrow-circle-left")),
                           plotOutput(ns("selectedPlot_ct")),
                           actionButton(ns("rightSlide"),"", icon=icon("arrow-circle-right"))),
-                          wellPanel(textOutput(ns("plotCaptions1")))
+                          wellPanel(textOutput(ns("plotCaptions1"))) # FIXME: captions have not been updated. 
                    )
                    ),
                  tabPanel(value="epi_panel", title="Epi View",
                    column(3,
                           wellPanel(
                                     fileInput(ns("data1"),"Upload Epidemic Data (CSV)", accept=".csv"),
+                                    show_filtercandidates(epi_data,epi=TRUE,ns=ns),
                                     downloadButton(id=ns("dp2"), "Download Plots")
                           )),
                    column(9,
@@ -80,11 +134,9 @@ vis_content <- function(id, data) {
                  ))
   )
   return(content)
-  }
+}
 
-
-vis_tab <- tabPanel("Data Visualization", value="vis_tab", vis_content("data_vis",sample_epiDat))
-
+vis_tab <- tabPanel("Data Visualization", value="vis_tab", vis_content("data_vis", ct_data=sample_ctDat, epi_data=sample_epiDat))
 
 ## Server-side code
 load_data_vis <- function(id) {
@@ -95,10 +147,10 @@ load_data_vis <- function(id) {
                            epi_data=sample_epiDat,
                            plots=NULL, plotlist=NULL,
                            ct_loaded=FALSE,
-                           epi_loaded=FALSE)
+                           epi_loaded=FALSE,
+                           displayed_filters=c())
       plot.info <-  reactiveValues(slideno=0 ,ggplot=NULL)
-      #mcmc_gaus <- reactiveValues(pars=example_seir_partab)
-      
+
       userData <- reactive({
         list(input$data1, input$data2)
       })
@@ -117,7 +169,7 @@ load_data_vis <- function(id) {
       ## Data vis tab-dependent 
       observeEvent(input$dv_tabs,{
         if(rv$ct_loaded == FALSE && rv$epi_loaded == FALSE) {
-          rv$plotlist <- dv_plots(ct_dat=rv$ct_data, epi_dat=rv$epi_data) #FIXME: this should be dynamic
+          rv$plotlist <- dv_plots(ct_dat=rv$ct_data, epi_dat=rv$epi_data) 
         }
         if(input$dv_tabs == "ct_panel") {
             rv$plots <- rv$plotlist[[2]]
@@ -148,20 +200,70 @@ load_data_vis <- function(id) {
       })
       
       observeEvent(input$rightSlide, {
-        #browser()
         plot.info$slideno = plot.info$slideno - 1 
         indexNo <- (plot.info$slideno %% length(rv$plots)) + 1
         plot.info$ggplot = rv$plots[[indexNo]]
       })
       
+      ns <- session$ns
+      
       ## Dynamic Filtering 
-      observeEvent(input$filter_sub, {
-        epi_data <- epi_data()
-        object_names <- get_options(epi_data)[2]
-        filter_dict <- hash::hash()
-        for(obj in object_names[[1]]) {
-          filter_dict[[obj]] <- input[[obj]]
+      filter_cols <- reactive({ #changed from reactive
+        list(input$epifilter_candidates,input$ctfilter_candidates)
+      })
+      
+      output$test20 <- renderPrint(input$ctfilter_candidates) #FIXME: this can go, it was here for testing purposes. 
+      
+      ## On filter column selection, create
+      ## UI objects for selectors containing unique values for 
+      ## those columns.  
+      ##
+      ## On unclick of a column, delete UI objects. 
+      observeEvent(filter_cols(), { 
+        candidates <- colnames(rv$ct_data[, sapply(rv$ct_data, class) %in% c('character', 'factor','numeric','Date')]) #place in reactive statement -- doesn't need to re-execute!
+        selected_filters <- input$ctfilter_candidates
+        old_filters <- rv$displayed_filters
+        rv$displayed_filters <- selected_filters
+        delete_filters <- old_filters[!(old_filters %in% selected_filters)]
+        selected_filters <- selected_filters[!(selected_filters %in% old_filters)] #if filters are already displayed, do not create new UI object. 
+        
+        for (del_fil in delete_filters) {
+          id <- ns(paste0(del_fil,"_options"))
+          removeUI(selector=paste0("#",id), immediate = TRUE)
+          removeUI(selector=sprintf("div#%s",id), immediate = TRUE)
         }
-        rv$plots <- dv_plots(filter_dict)
+        
+        for(col in selected_filters) {
+          id <- ns(paste0(col,"_options"))
+          if (col %in% candidates) {
+            insertUI(
+              selector="#placeholder",
+              where="beforeBegin",
+              ui = show_filtervals(rv$ct_data,cols=col,ns=session$ns)
+            )
+          }
+        }
+      } ,ignoreNULL=FALSE)
+      
+      ## On filter value submission, 
+      ## filter dataframe and update plots. 
+      observeEvent(input$filter_sub, {
+        filter_objs <- rv$displayed_filters
+        filter_dict <- hash::hash()
+        for(obj in filter_objs) {
+          obj <- paste0(obj,"_options")
+          browser()
+          filter_val <- input[[obj]]
+          if(!is.null(filter_val)) { filter_dict[[obj]] <- input[[obj]] }
+        }
+        
+        if(input$dv_tabs == "ct_panel") { 
+          rv$plotlist <- dv_plots(ct_dat=rv$ct_data, epi_dat=rv$epi_data,ct_filters=filter_dict)
+          rv$plots <- rv$plotlist[[2]]
+          plot.info$ggplot <- rv$plots[[1]]
+          output$selectedPlot_ct <- renderPlot(plot.info$ggplot)
+        }
+        
+        if(input$dv_tabs == "epi_panel") { rv$plotlist <- dv_plots(ct_dat=rv$ct_data, epi_dat=rv$epi_data, epi_filters=filter_dict)}
       })
   })}
