@@ -284,6 +284,7 @@ p_skew_time <- function(comb_dat) {
   }
   my_x_axis <- scale_x_date(limits=as.Date(c(start_date-10,end_date+10)),breaks = "14 days")
   plots <- list()
+  iter <- 1
   for (gene_choice in unique(comb_dat$gene)) { 
       skew_plot <- ggplot(comb_dat %>% filter(gene==gene_choice),aes(x=date,y=skew_ct)) + 
       geom_point() +
@@ -294,7 +295,9 @@ p_skew_time <- function(comb_dat) {
       theme_classic() +
       my_x_axis +
       theme(axis.text.x=element_text(angle=45,hjust=1))
-      plots <- append(plots, skew_plot)
+      
+      plots[[iter]] <- skew_plot
+      iter <- iter + 1
   }
   plots
 }
@@ -363,6 +366,9 @@ violin_plots <- function(comb_dat, ct_dat_long, data_grs,
   epi_week_dat <- left_join(ct_dat_long,epi_cal)
   
   plots <- list()
+  #browser()
+
+  iter <- 1
   for (gene_choice in unique(comb_dat$gene)) { 
     p_violins <- ggplot(epi_week_dat %>% filter(gene == gene_choice)) +
       geom_violin(aes(x=min_date,y=Ct_round,group=min_date),scale="width",width=5,fill="grey70",draw_quantiles=c(0.025,0.5,0.975),alpha=0.5) +
@@ -372,7 +378,9 @@ violin_plots <- function(comb_dat, ct_dat_long, data_grs,
       ylab(paste0(gene_choice, " Ct distribution")) +
       xlab("Date grouped by epi week") +
       theme_classic()
-    plots <- append(plots,p_violins)
+    plots[[iter]] <- p_violins
+    iter <- iter + 1
+    #plots <- append(plots,p_violins)
   
   }
   plots

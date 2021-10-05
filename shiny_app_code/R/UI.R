@@ -20,13 +20,13 @@ source(paste0(rootdir,"/panels/primary_output.R"))
 viro_UI <- shinyUI ({
   fluidPage(
     navbarPage(id="viro_nav",
-              "Virosolver",
+               "Virosolver",
                overview_tab,
-               #vis_tab, 
+               vis_tab, 
                vk_tab,
                mcmc_tab,
                runmod_tab,
                out_tab
-               ) 
+    ) 
   )
 })

@@ -1,4 +1,4 @@
-#source("/Users/kotah/Desktop/virosolver/ShinySolver/ShinySolver/R/helpers/vk_helpers.R")
+source("/Users/kotah/Desktop/virosolver/ShinySolver/ShinySolver/R/helpers/vk_helpers.R")
 
 #set shorter names
 pt <- example_gp_partab 

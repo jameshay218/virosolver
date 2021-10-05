@@ -37,17 +37,9 @@ create_prior_func_seir <- function(seir_partab) {
 single_xs <- function(time, ct_threshold=40, ct_data, 
                       seir_partab,
                       singlemodal=TRUE,
-                      mcmc_pars=c(),
-                      #iterations=200000, #Actual default:200000
-                      #adaptive_period=100000, #Actual default:100000
+                      iterations=200000, #Actual default:200000
+                      adaptive_period=100000, #Actual default:100000
                       nchains=3) {
-  ## Extract MCMC pars specified and use defaults
-  mcmc_pars_used <- c("iterations" = 50000, "popt" = 0.234, 
-                      "opt_freq" = 2000, "thin" = 100,
-                      "adaptive_period" = 10000,"save_block" = 100)
-  mcmc_pars_used[names(mcmc_pars)] <- mcmc_pars
-  
-  
   print("Constructing prior SEIR function...")
   prior_func_seir <- create_prior_func_seir(seir_partab)
   print("Setting incidence function and creating posterior function...")
@@ -70,6 +62,8 @@ single_xs <- function(time, ct_threshold=40, ct_data,
                                           prior_func_seir)
   covMat <- diag(nrow(start_tab))
   mvrPars <- list(covMat,2.38/sqrt(nrow(start_tab[start_tab$fixed==0,])),w=0.8)
+  mcmc_pars <- c("iterations"=iterations,"popt"=0.234,"opt_freq"=2000,
+                 "thin"=1000,"adaptive_period"=adaptive_period,"save_block"=100)
   dir.create("mcmc_chains/readme_single_cross_section",recursive=TRUE)
   
   ##################################
@@ -84,7 +78,7 @@ single_xs <- function(time, ct_threshold=40, ct_data,
                       data=ct_data_use,
                       INCIDENCE_FUNC=incidence_function,
                       PRIOR_FUNC=prior_func_seir,
-                      mcmcPars=mcmc_pars_used,
+                      mcmcPars=mcmc_pars,
                       filename=paste0("mcmc_chains/readme_single_cross_section/readme_seir_",chain_no),
                       CREATE_POSTERIOR_FUNC=create_posterior_func,
                       mvrPars=mvrPars,
@@ -93,7 +87,7 @@ single_xs <- function(time, ct_threshold=40, ct_data,
     #close(con)
     chains <- load_mcmc_chains(location="mcmc_chains/readme_single_cross_section",
                                parTab=start_tab,
-                               burnin=mcmc_pars_used["adaptive_period"],
+                               burnin=mcmc_pars["adaptive_period"],
                                chainNo=TRUE,
                                unfixed=TRUE,
                                multi=TRUE)
@@ -113,7 +107,7 @@ single_xs <- function(time, ct_threshold=40, ct_data,
     ## to ensure that the posterior draws are compatible with the model functions
     chains <- load_mcmc_chains(location="mcmc_chains/readme_single_cross_section",
                                parTab=start_tab,
-                               burnin=mcmc_pars_used["adaptive_period"],
+                               burnin=mcmc_pars["adaptive_period"],
                                chainNo=FALSE,
                                unfixed=FALSE,
                                multi=TRUE)

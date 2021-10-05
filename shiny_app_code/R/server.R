@@ -1,5 +1,3 @@
-source("global.R")
-
 viro_server <- function(input, output, session) {
   options(shiny.maxRequestSize=30*1024^2) #Expand max input size
   
@@ -49,6 +47,8 @@ viro_server <- function(input, output, session) {
   ##Viral kinetics uploads must currently include "age" and "ct" column explicitely
   observeEvent(input$vk_data, {
     vk$vk_cts <- read_csv(file=(input$vk_data)$datapath)
+    ## NOTE: plotly allows for better graphic interaction and downloading, but 
+    ## causes EXTREMELY slow loading with many datapoints. 
     #output$vk_iplot <- renderPlotly(plot_vk(vk$sliderValues, vk$vk_cts))
   })
   
@@ -75,23 +75,6 @@ viro_server <- function(input, output, session) {
   ## Multiple Cross Sections
   output$gp_pars <- renderRHandsontable({
     rhandsontable(mcmc_mxs$gp_pars)
-  })
-  
-  ## Upload Markov Chains 
-  ## Reads in the MCMC chains and converts them to the correct MCMC objects etc
-  upload_chains <- reactive({
-    chain_file <- input$mcmc_chains_files
-    read_mcmc_chains_tab(chain_file,mcmc_1xs,input)
-  })
-  output$mcmc_chain_head <- renderTable({
-    mcmc_chains <- upload_chains()
-    if(is.null(mcmc_chains))
-      return(NULL)
-    head(mcmc_chains[[1]])
-  })
-  output$mcmc_chain_trace <- renderPlot({
-    mcmc_chains <- upload_chains()
-    plot_mcmc_chains_tab(mcmc_chains)
   })
   
 }

@@ -48,9 +48,13 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
   pc_conf <- p_cases_confirmed(epi_dat_long, comb_dat)
   #pgr_conf <- p_gr_confirmed(grs_dat, comb_dat) FIXME: issue w grs_dat - unresolved 
   vi_plot <- violin_plots(comb_dat, ct_dat_long)
-  epi_plots <- list(pb_scat,pm_time,ps_time,pc_conf)
+  epi_plots <- list(pb_scat,pm_time,pc_conf)
+  for (ps_plot in ps_time) { epi_plots[[length(epi_plots) + 1]] <- ps_plot }
+  browser()
   #epi_plots <- append(epi_plots,pc_conf) ## FIXME: Displays only one plot of list
-  ct_plots <- list(ct_plot_raw,ct_plot_mean,ct_plot_skew, vi_plot)
+  ct_plots <- list(ct_plot_raw,ct_plot_mean,ct_plot_skew)
+  browser()
+  for (v_plot in vi_plot) { ct_plots[[length(ct_plots) + 1]] <- v_plot }
   #ct_plots <- append(ct_plots,vi_plot)
   plots <-list(epi_plots,ct_plots)
   return(plots)

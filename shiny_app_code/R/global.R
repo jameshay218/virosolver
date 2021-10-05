@@ -5,7 +5,10 @@ packages <- c("shiny","dplyr","magrittr","tidyverse",
               "slickR","svglite","hash","MMWRweek",
               "plotly","virosolver","DT","shinyBS",
               "rhandsontable","lazymcmc","foreach",
-              "future","shinyFiles")
+              "future","shinyFiles","shinyjs")
+
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+rootdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 
 ## Now load or install&load all
 package.check <- lapply(
@@ -44,4 +47,3 @@ sim_pars <- example_gp_partab$values
 names(sim_pars) <- example_gp_partab$names
 sim_test_ages <- seq(1,50,by=1)
 sim_cts <- simulate_viral_loads_example(sim_test_ages, sim_pars,N=200)
-

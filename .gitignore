@@ -21,7 +21,7 @@ binaries
 *~
 *.o
 *.so
-
+shiny_app_code/data/
 *chain.csv
 
 Meta

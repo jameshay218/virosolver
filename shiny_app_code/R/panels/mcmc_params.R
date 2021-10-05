@@ -13,7 +13,6 @@ textInputRow<-function (inputId, label, value = "")
   chunk
 }
 
-## FIXME: Automate this, this is so ugly. 
 ## FIXME: Implement hash or named list for variable descriptions AND values,
 ## same for data vis! 
 value_view <- function() {
@@ -75,27 +74,9 @@ mcmc_content <- function(table=TRUE) {
                            tabPanel("Upload GP Params",fileInput("gp_pars_USER",
                                                                    "Upload csv containing GP parameters", 
                                                                    accept=".csv")),
-                           tabPanel("Table View", multi_cross())
-                           )),
-                tabPanel("MCMC Parameters",
-                         h4("Core MCMC parameters"),
-                         fluidRow(
-                           column(4,numericInput(inputId="mcmc_iterations",label="Number of MCMC interations",
-                                                 value=50000,min=1000,max=100000000,step=1000)),
-                           column(4,numericInput(inputId="mcmc_adaptive",label="Burn in period",
-                                                 value=50000,min=1000,max=100000000,step=1000)),
-                           column(4,numericInput(inputId="mcmc_thin",label="Thinning",
-                                                 value=10,min=1,max=100000,step=1))
-                         ),
-                         h4("Advanced MCMC parameters"),
-                         fluidRow(
-                           column(4,numericInput(inputId="mcmc_save_block",label="Disk write frequency",
-                                                 value=1000,min=1,max=100000000,step=1)),
-                           column(4,numericInput(inputId="mcmc_opt_freq",label="Proposal optimization frequency",
-                                                 value=2000,min=100,max=100000000,step=1)),
-                           column(4, checkboxInput("mutlivariate_mcmc","Multivariate proposals",value=FALSE))
-                         )
-                )
+                           tabPanel("Table View", multi_cross()))#,
+                  )
+                #tabPanel("Test multi",tabsetPanel(tabPanel("take1"),tabPanel("take2")))
     )
   )
   )
