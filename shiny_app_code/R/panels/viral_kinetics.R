@@ -1,5 +1,3 @@
-source("/Users/kotah/Desktop/virosolver/ShinySolver/ShinySolver/R/helpers/vk_helpers.R")
-
 #set shorter names
 pt <- example_gp_partab 
 row.names(pt) <- c(example_gp_partab$names[1:19],c(1:(384-19)))

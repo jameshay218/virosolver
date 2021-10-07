@@ -1,4 +1,9 @@
 ###### Data Visualization Function Definitions ##########
+## FIXME: I am realizing that, while these functions don't necessarily
+## require a "gene" column specifically (i.e., named gene or limited to only
+## one column), they will most likely break with data that does not include any 
+## assay or gene information as they are built to expect it in some form.
+## This should be a quick enough fix. 
 
 ## emake_long()
 ## Convert epidemic trajectory data into long format
@@ -366,7 +371,6 @@ violin_plots <- function(comb_dat, ct_dat_long, data_grs,
   epi_week_dat <- left_join(ct_dat_long,epi_cal)
   
   plots <- list()
-  #browser()
 
   iter <- 1
   for (gene_choice in unique(comb_dat$gene)) { 
@@ -380,8 +384,7 @@ violin_plots <- function(comb_dat, ct_dat_long, data_grs,
       theme_classic()
     plots[[iter]] <- p_violins
     iter <- iter + 1
-    #plots <- append(plots,p_violins)
-  
+
   }
   plots
 }

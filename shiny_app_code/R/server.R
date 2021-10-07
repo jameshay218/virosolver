@@ -44,7 +44,7 @@ viro_server <- function(input, output, session) {
     vk$sliderValues$values[vk$sliderValues$names=="prob_detect"] <- input$prob_detect
   })
   
-  ##Viral kinetics uploads must currently include "age" and "ct" column explicitely
+  ##Viral kinetics uploads must currently include "age" and "ct" column explicitly
   observeEvent(input$vk_data, {
     vk$vk_cts <- read_csv(file=(input$vk_data)$datapath)
     ## NOTE: plotly allows for better graphic interaction and downloading, but 

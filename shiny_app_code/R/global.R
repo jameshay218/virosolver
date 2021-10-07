@@ -6,7 +6,7 @@ packages <- c("shiny","dplyr","magrittr","tidyverse",
               "plotly","virosolver","DT","shinyBS",
               "rhandsontable","lazymcmc","foreach",
               "future","shinyFiles","shinyjs")
-
+##Antiquated libraries: "svglite","slickR","future"
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 rootdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 
@@ -26,7 +26,9 @@ package.check <- lapply(
 ## FIXME: Add these to R package structure
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 sample_epiDat <- read_csv("../data/india_data_districts.csv")
-sample_ctDat <- read_csv("../data/RawData_COVID_PCR Analysis_oct2020.csv") 
+#sample_epiDat <- read_csv("../data/")
+sample_ctDat <- read_csv("../data/RawData_COVID_PCR Analysis_oct2020.csv")
+#sample_ctDat <- read_csv("../data/")
 
 ## load example data for testing 
 data(example_gp_partab)

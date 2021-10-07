@@ -12,6 +12,8 @@ source(paste0(rootdir,"/global.R"))
 ##
 ## This function creates all necessary graphs for the data 
 ## visualization page and returns them in list format. 
+## FIXME: these plots take roughly a minute or two to load, 
+## it's very slow! 
 dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
                      ct_filters=hash::hash(), epi_filters=hash::hash() ) {
   ## Filter data appropriately given user input 
@@ -22,11 +24,11 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
     epi_dat_long <- e_dat_list[[1]] ## Indexing necessary
     epi_filters <- e_dat_list[[2]] 
     grs_dat <- emake_grs(epi_dat_long)
-    ##NOTE: Epi tab filtering not currently in place. 
+    ##FIXME: Epi tab filtering not currently in place. 
     grs_plot <- plot_cases(epi_dat_long, epi_filters)
     comb_dat <- combine_vis_dat(ct_dat_long, ct_summ, grs_dat, epi_dat_long)
   }
-  ## Prepare daata without filters. 
+  ## Prepare data without filters. 
   else { 
     ct_dat_long <- ctmake_long(ct_dat)
     ct_summ <- summarize_ct(ct_dat_long)
@@ -45,17 +47,15 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
   pb_scat <- p_both_scatter(comb_dat)
   pm_time <- p_mean_time(comb_dat)
   ps_time <- p_skew_time(comb_dat)
+  #pc_conf is a list of plots (1 per gene/assay)
   pc_conf <- p_cases_confirmed(epi_dat_long, comb_dat)
   #pgr_conf <- p_gr_confirmed(grs_dat, comb_dat) FIXME: issue w grs_dat - unresolved 
+  #vi_plot is a list of plots (1 per gene/assay)
   vi_plot <- violin_plots(comb_dat, ct_dat_long)
   epi_plots <- list(pb_scat,pm_time,pc_conf)
   for (ps_plot in ps_time) { epi_plots[[length(epi_plots) + 1]] <- ps_plot }
-  browser()
-  #epi_plots <- append(epi_plots,pc_conf) ## FIXME: Displays only one plot of list
   ct_plots <- list(ct_plot_raw,ct_plot_mean,ct_plot_skew)
-  browser()
   for (v_plot in vi_plot) { ct_plots[[length(ct_plots) + 1]] <- v_plot }
-  #ct_plots <- append(ct_plots,vi_plot)
   plots <-list(epi_plots,ct_plots)
   return(plots)
 }
@@ -111,7 +111,7 @@ vis_content <- function(id, ct_data=sample_ctDat, epi_data=sample_epiDat) {
                             verbatimTextOutput(ns("test20")),
                             div(id="placeholder"),#Necessary for updating the DOM using this div as a reference
                             actionButton(ns("filter_sub"),"Filter Data"),
-                            downloadButton(id=ns("dp1"),"Download Plots") # FIXME: the download button is not fully functional 
+                            downloadButton(id=ns("dp1"),"Download Plots")  # FIXME: the download button is not fully functional 
                             )),
                    column(9,
                           splitLayout(cellWidths = (c("5%","90%","5%")),
@@ -159,6 +159,8 @@ load_data_vis <- function(id) {
         list(input$data1, input$data2)
       })
       
+      # Update data used for application 
+      # when a user uploads their own data. 
       observeEvent(userData(), {
         if(!is.null(input$data1)) {
           rv$epi_data <- read_csv(file=(input$data1)$datapath)
