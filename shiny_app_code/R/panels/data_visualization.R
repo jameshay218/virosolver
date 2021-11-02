@@ -69,7 +69,7 @@ show_filtercandidates <- function(data,epi=FALSE, ns) {
   
   pickerInput(
     inputId = ns(id), 
-    label = "Select/deselect all options", 
+    label = "Select columns for filtering:", 
     choices = sort(candidates), options = list(`actions-box` = TRUE), 
     multiple = TRUE
   )
@@ -77,14 +77,14 @@ show_filtercandidates <- function(data,epi=FALSE, ns) {
 
 ## This function  creates the UI that
 ## allows the user to indicate which 
-## columns contain Ct values (multiple allowed). 
+## columns contain Ct values (multiple selections allowed). 
 ## It is necessary for accurate data manipulation. 
 show_ctcandidates <- function(data,ns) {
   candidates <- colnames(data[, sapply(data, class) %in% c('numeric')])
   id="assay_cols"
   pickerInput(
     inputId = ns(id), 
-    label = "Please indicate which column(s) contain(s) Ct values", 
+    label = "Please indicate which columns contain CT values:", 
     choices = sort(candidates), options = list(`actions-box` = TRUE), 
     multiple = TRUE
   )
@@ -105,19 +105,22 @@ vis_content <- function(id, ct_data=sample_ctDat, epi_data=sample_epiDat) {
                  tabPanel(value="ct_panel", title="Ct View",
                    column(3,
                      wellPanel(
-                            fileInput(ns("data2"),"Upload PCR-RT Ct Data (CSV)",  accept=".csv"),
+                            fileInput(ns("data2"),"Upload PCR-RT CTData (CSV):",  accept=".csv"),
+                            tags$hr(),
                             show_filtercandidates(ct_data,ns=ns),
+                            tags$hr(),
                             show_ctcandidates(ct_data, ns=ns),
-                            verbatimTextOutput(ns("test20")),
+                            tags$hr(),
                             div(id="placeholder"),#Necessary for updating the DOM using this div as a reference
+                            tags$hr(),
                             actionButton(ns("filter_sub"),"Filter Data"),
                             downloadButton(id=ns("dp1"),"Download Plots")  # FIXME: the download button is not fully functional 
                             )),
                    column(9,
                           splitLayout(cellWidths = (c("5%","90%","5%")),
-                          actionButton(ns("leftSlide"),"", icon=icon("arrow-circle-left")),
+                          div(style="display:inline-block", actionButton(ns("leftSlide"),"", icon=icon("arrow-circle-left"),align="center")),
                           plotOutput(ns("selectedPlot_ct")),
-                          actionButton(ns("rightSlide"),"", icon=icon("arrow-circle-right"))),
+                          actionButton(ns("rightSlide"),"", icon=icon("arrow-circle-right"),align="center")),
                           wellPanel(textOutput(ns("plotCaptions1"))) # FIXME: captions have not been updated. 
                    )
                    ),
@@ -125,14 +128,16 @@ vis_content <- function(id, ct_data=sample_ctDat, epi_data=sample_epiDat) {
                    column(3,
                           wellPanel(
                                     fileInput(ns("data1"),"Upload Epidemic Data (CSV)", accept=".csv"),
+                                    tags$hr(),
                                     show_filtercandidates(epi_data,epi=TRUE,ns=ns),
+                                    tags$hr(),
                                     downloadButton(id=ns("dp2"), "Download Plots")
                           )),
                    column(9,
                           splitLayout(cellWidths = (c("5%","90%","5%")),
-                                      actionButton(ns("leftSlide2"),"", icon=icon("arrow-circle-left")),
-                                      plotOutput(ns("selectedPlot_epi")),
-                                      actionButton(ns("rightSlide2"),"", icon=icon("arrow-circle-right"))),
+                          actionButton(ns("leftSlide2"),"", icon=icon("arrow-circle-left")),
+                          plotOutput(ns("selectedPlot_epi")),
+                          actionButton(ns("rightSlide2"),"", icon=icon("arrow-circle-right"))),
                           wellPanel(textOutput(ns("plotCaptions2")))
                    )
                  ))
@@ -213,12 +218,29 @@ load_data_vis <- function(id) {
       
       ns <- session$ns
       
+      ##Return plots
+      get_plots <- reactive({ #changed from reactive
+        rv$plots
+      })
+      
+      ##Download button handler
+      ## Not functional; FIXME: need to figure out how to 
+      ## access reactive values for downloads. 
+      output$data_vis-dp1 <- downloadHandler(
+        filename = function() {
+          paste("viro-plots-", Sys.Date(), ".pdf", sep="")
+        },
+        content = function(file) {
+          pdf(file)
+          get_plots()
+          dev.off()
+        }
+      )
+      
       ## Dynamic Filtering 
       filter_cols <- reactive({ #changed from reactive
         list(input$epifilter_candidates,input$ctfilter_candidates)
       })
-      
-      output$test20 <- renderPrint(input$ctfilter_candidates) #FIXME: this can go, it was here for testing purposes. 
       
       ## On filter column selection, create
       ## UI objects for selectors containing unique values for 
@@ -258,7 +280,6 @@ load_data_vis <- function(id) {
         filter_dict <- hash::hash()
         for(obj in filter_objs) {
           obj <- paste0(obj,"_options")
-          browser()
           filter_val <- input[[obj]]
           if(!is.null(filter_val)) { filter_dict[[obj]] <- input[[obj]] }
         }

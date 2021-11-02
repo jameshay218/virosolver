@@ -66,8 +66,8 @@ mcmc_content <- function(table=TRUE) {
                            tabPanel("Upload SEIR Params",fileInput("seir_pars_USER",
                                                                    "Upload csv containing SEIR parameters", 
                                                                    accept=".csv")),
-                           tabPanel("Table View", single_cross()),
-                           tabPanel("Value View", single_cross(table_view=FALSE))
+                           tabPanel("Table View", single_cross())#,
+                           #tabPanel("Value View", single_cross(table_view=FALSE))
                          )),
                 tabPanel("Multiple Cross Sections",
                          tabsetPanel(
@@ -76,7 +76,6 @@ mcmc_content <- function(table=TRUE) {
                                                                    accept=".csv")),
                            tabPanel("Table View", multi_cross()))#,
                   )
-                #tabPanel("Test multi",tabsetPanel(tabPanel("take1"),tabPanel("take2")))
     )
   )
   )

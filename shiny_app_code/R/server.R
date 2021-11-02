@@ -52,7 +52,6 @@ viro_server <- function(input, output, session) {
     #output$vk_iplot <- renderPlotly(plot_vk(vk$sliderValues, vk$vk_cts))
   })
   
-  
   ## MCMC Parameters 
   
   ## Single Cross Section
