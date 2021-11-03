@@ -24,9 +24,9 @@ package.check <- lapply(
 )
 
 ##Install necessary packages from github
-if(!require(lazymcmc)) devtools::install_github("jameshay218/lazymcmc")
+if(!require(lazymcmc)) devtools::install_github("jameshay218/lazymcmc", dependencies=TRUE)
 library(lazymcmc)
-if(!require(virosolver)) devtools::install_github("jameshay218/virosolver")
+if(!require(virosolver)) devtools::install_github("jameshay218/virosolver", dependencies=TRUE)
 library(virosolver)
 
 ### GLOBAL VARIABLES ######

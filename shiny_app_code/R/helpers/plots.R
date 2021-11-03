@@ -2,6 +2,8 @@
 ## emake_long()
 ## Convert epidemic trajectory data into long format
 ## FIXME: this function assumes all numeric columns pertain to case counts. 
+## FIXME: certain plots will only be interpretable if filtering is implemented
+## for the epi tab. 
 emake_long <- function (data=sample_epiDat, filters=hash()) 
   {
   filter_choices <- c()
@@ -22,6 +24,7 @@ emake_long <- function (data=sample_epiDat, filters=hash())
   date_col <- 'date'
   data[[date_col]] <- as.Date(data[[date_col]])
   
+  browser()
   pivot_cols <- colnames(data[, sapply(data, class) %in% c('character', 'factor','Date')])
   gb_cols <- colnames(data[, sapply(data, class) %in% c('character', 'factor')])
   data_long <- data %>% pivot_longer(-pivot_cols) #pivot_longer(-c(Date,State,District))
