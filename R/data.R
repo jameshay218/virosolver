@@ -92,3 +92,22 @@
 #' }
 #' @family example_data
 "vignette_data2"
+
+#' Example epidemic data
+#'
+#' Example of epidemic data pulled from a Covid-19 WHO dataset (link:)
+#' to view epidemic trends with the virosolver data visualization
+#' page. By default, the app uses this data to populate the 
+#' epi data visualization tab. 
+#' @docType data
+#' @usage data(example_epi_data.RData)
+#' @format A data frame with 50000 rows and 5 variables:
+#' \describe{
+#'     \item{Country}{Country associated with case numbers.}
+#'     \item{Region}{Region associated with case numbers.}
+#'     \item{Confirmed}{Confirmed case count (Cumulative)}
+#'     \item{Deceased}{Deceased case count (Cumulative)}
+#'     \item{Date}{Date of case reporting}
+#' }
+#' @family example_data
+"example_epi_data.RData"

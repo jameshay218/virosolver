@@ -12,8 +12,6 @@ packages <- c("rstudioapi","shiny","dplyr","magrittr","tidyverse",
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 rootdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 
-#dv.packages <- c("virosolver")
-
 ## Now load or install&load all
 package.check <- lapply(
   packages,
@@ -25,6 +23,7 @@ package.check <- lapply(
   }
 )
 
+##Install necessary packages from github
 if(!require(lazymcmc)) devtools::install_github("jameshay218/lazymcmc")
 library(lazymcmc)
 if(!require(virosolver)) devtools::install_github("jameshay218/virosolver")
@@ -33,18 +32,10 @@ library(virosolver)
 ### GLOBAL VARIABLES ######
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
-load("C:/Users/anvia/Desktop/Dakotah_Testing/virosolver/data/example_epi_data.RData")
-sample_epiDat <- sample.epi.df
+## Load default/example data
+data(example_epi_data)
+sample_epiDat <- example_epi_data
 
-#sample_epiDat <- read_csv("../data/india_data_districts.csv")
-
-#sample_epiDat <- read_csv("../data/")
-
-#sample_ctDat <- read_csv("../data/RawData_COVID_PCR Analysis_oct2020.csv")
-
-#sample_ctDat <- read_csv("../data/")
-
-## load example data for testing 
 data(example_gp_partab)
 
 simct_pars <- example_gp_partab$values

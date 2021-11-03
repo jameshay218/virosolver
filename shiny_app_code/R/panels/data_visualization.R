@@ -1,17 +1,11 @@
+source(paste0(rootdir,"/helpers/plots.R"))
+source(paste0(rootdir,"/global.R"))
+
+## dv_plots(ct_dat, epi_dat, ct_filters, epi_filters)
 ## This function takes in ct value data (ct_dat), epidemic data (epi_dat),
 ## and selected filters (in the form of a hash table) and returns a 
 ## list object containing ct-specific plots in slot 2 and epi-specific 
 ## plots in slot 1. 
-
-source(paste0(rootdir,"/helpers/plots.R"))
-source(paste0(rootdir,"/global.R"))
-
-## This function takes in either the default or user-uploaded 
-## Ct value dataframe, epidemic demographic dataframe, 
-## and the selected filters to be applied to each dataframe.
-##
-## This function creates all necessary graphs for the data 
-## visualization page and returns them in list format. 
 ## FIXME: these plots take roughly a minute or two to load, 
 ## it's very slow! 
 dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
@@ -19,11 +13,9 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
   ## Filter data appropriately given user input 
   if (!is.empty(ct_filters)) {
     ct_dat_long <- ctmake_long(ct_dat=ct_dat, filters=ct_filters)
-    browser()
     ct_summ <- summarize_ct(ct_dat_long)
     e_dat_list <- emake_long(epi_dat)
-    browser()
-    epi_dat_long <- e_dat_list[[1]] ## Indexing necessary
+    epi_dat_long <- e_dat_list[[1]]
     epi_filters <- e_dat_list[[2]] 
     grs_dat <- emake_grs(epi_dat_long)
     ##FIXME: Epi tab filtering not currently in place. 
@@ -35,7 +27,7 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
     ct_dat_long <- ctmake_long(ct_dat)
     ct_summ <- summarize_ct(ct_dat_long)
     e_dat_list <- emake_long(epi_dat)
-    epi_dat_long <- e_dat_list[[1]] ## Indexing necessary
+    epi_dat_long <- e_dat_list[[1]] 
     epi_filters <- e_dat_list[[2]]
     grs_dat <- emake_grs(epi_dat_long)
     grs_plot <- plot_cases(epi_dat_long, epi_filters)
@@ -49,18 +41,17 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
   pb_scat <- p_both_scatter(comb_dat)
   pm_time <- p_mean_time(comb_dat)
   ps_time <- p_skew_time(comb_dat)
-  #pc_conf is a list of plots (1 per gene/assay)
-  pc_conf <- p_cases_confirmed(epi_dat_long, comb_dat)
-  #pgr_conf <- p_gr_confirmed(grs_dat, comb_dat) FIXME: issue w grs_dat - unresolved 
-  #vi_plot is a list of plots (1 per gene/assay)
-  vi_plot <- violin_plots(comb_dat, ct_dat_long)
-  epi_plots <- list(pb_scat,pm_time,pc_conf)
+  pc_conf <- p_cases_confirmed(epi_dat_long, comb_dat)   #pc_conf is a list of plots (1 per gene/assay) -- FIXME: no longer necessary!
+  pgr_conf <- p_gr_confirmed(grs_dat, comb_dat) #FIXME: issue w grs_dat - unresolved 
+  vi_plot <- violin_plots(comb_dat, ct_dat_long)   #vi_plot is a list of plots (1 per gene/assay) -- FIXME: no longer necessary! 
+  epi_plots <- list(pb_scat,pm_time,pc_conf,pgr_conf)
   for (ps_plot in ps_time) { epi_plots[[length(epi_plots) + 1]] <- ps_plot }
   ct_plots <- list(ct_plot_raw,ct_plot_mean,ct_plot_skew)
   for (v_plot in vi_plot) { ct_plots[[length(ct_plots) + 1]] <- v_plot }
   plots <-list(epi_plots,ct_plots)
   return(plots)
 }
+
 ## This function creates the initial dropdown selector UI for 
 ## the user to choose which columns they would like to filter on 
 ## for both the Ct and Epi tab of the data visualization page. 
@@ -150,7 +141,8 @@ vis_content <- function(id, ct_data=sample_ctDat, epi_data=sample_epiDat) {
 
 vis_tab <- tabPanel("Data Visualization", value="vis_tab", vis_content("data_vis", ct_data=sample_ctDat, epi_data=sample_epiDat))
 
-## Server-side code
+## Server-side data visualization code
+## (modularized to clean up server.R)
 load_data_vis <- function(id) {
   moduleServer(
     id,
@@ -253,9 +245,8 @@ load_data_vis <- function(id) {
       ## UI objects for selectors containing unique values for 
       ## those columns.  
       ##
-      ## On unclick of a column, delete UI objects. 
+      ## On un-click of a column, delete UI objects. 
       observeEvent(filter_cols(), {
-        browser()
         candidates <- colnames(rv$ct_data[, sapply(rv$ct_data, class) %in% c('character', 'factor','numeric','Date')]) #place in reactive statement -- doesn't need to re-execute!
         selected_filters <- input$ctfilter_candidates
         old_filters <- rv$displayed_filters

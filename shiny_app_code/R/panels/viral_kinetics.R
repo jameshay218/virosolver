@@ -105,12 +105,10 @@ vk_content <- function() {
            min=pt["prob_detect",]$lower_bound,
            max=pt["prob_detect",]$upper_bound,
            value=pt["prob_detect",]$values
-         )#,
-         #width=2
+         )
        ),
        mainPanel(
          plotlyOutput("vk_iplot")
-         #width=10
        )
   )
 }
