@@ -1,14 +1,18 @@
-packages <- c("shiny","dplyr","magrittr","tidyverse",
+packages <- c("rstudioapi","shiny","dplyr","magrittr","tidyverse",
               "lubridate","patchwork","ggpubr",
               "ggplot2","devtools","bsplus",
               "shinydashboard","shinyWidgets",
               "slickR","svglite","hash","MMWRweek",
-              "plotly","virosolver","DT","shinyBS",
-              "rhandsontable","lazymcmc","foreach",
-              "future","shinyFiles","shinyjs")
+              "plotly","DT","shinyBS",
+              "rhandsontable","foreach",
+              "future","shinyFiles","shinyjs",
+              "devtools","moments","zoo", "extraDistr")
+
 ##Antiquated libraries: "svglite","slickR","future"
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 rootdir <- dirname(rstudioapi::getSourceEditorContext()$path)
+
+#dv.packages <- c("virosolver")
 
 ## Now load or install&load all
 package.check <- lapply(
@@ -20,14 +24,24 @@ package.check <- lapply(
     }
   }
 )
-##load packages
+
+if(!require(lazymcmc)) devtools::install_github("jameshay218/lazymcmc")
+library(lazymcmc)
+if(!require(virosolver)) devtools::install_github("jameshay218/virosolver")
+library(virosolver)
 
 ### GLOBAL VARIABLES ######
-## FIXME: Add these to R package structure
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
-sample_epiDat <- read_csv("../data/india_data_districts.csv")
+
+load("C:/Users/anvia/Desktop/Dakotah_Testing/virosolver/data/example_epi_data.RData")
+sample_epiDat <- sample.epi.df
+
+#sample_epiDat <- read_csv("../data/india_data_districts.csv")
+
 #sample_epiDat <- read_csv("../data/")
-sample_ctDat <- read_csv("../data/RawData_COVID_PCR Analysis_oct2020.csv")
+
+#sample_ctDat <- read_csv("../data/RawData_COVID_PCR Analysis_oct2020.csv")
+
 #sample_ctDat <- read_csv("../data/")
 
 ## load example data for testing 
@@ -37,6 +51,9 @@ simct_pars <- example_gp_partab$values
 names(simct_pars) <- example_gp_partab$names
 
 data(example_ct_data)
+data(vignette_data2)
+
+sample_ctDat <- vignette_data2
 
 ## MCMC Parameter Names
 seir_parnames <- c("viral_peak","wane_rate2",
@@ -49,3 +66,4 @@ sim_pars <- example_gp_partab$values
 names(sim_pars) <- example_gp_partab$names
 sim_test_ages <- seq(1,50,by=1)
 sim_cts <- simulate_viral_loads_example(sim_test_ages, sim_pars,N=200)
+

@@ -19,8 +19,10 @@ dv_plots <- function(ct_dat=sample_ctDat, epi_dat=sample_epiDat,
   ## Filter data appropriately given user input 
   if (!is.empty(ct_filters)) {
     ct_dat_long <- ctmake_long(ct_dat=ct_dat, filters=ct_filters)
+    browser()
     ct_summ <- summarize_ct(ct_dat_long)
     e_dat_list <- emake_long(epi_dat)
+    browser()
     epi_dat_long <- e_dat_list[[1]] ## Indexing necessary
     epi_filters <- e_dat_list[[2]] 
     grs_dat <- emake_grs(epi_dat_long)
@@ -90,6 +92,7 @@ show_ctcandidates <- function(data,ns) {
   )
 }
 
+
 ## This function creates UI selector objects for 
 ## selected filter-on columns 
 show_filtervals <- function(data, cols, epi=FALSE, ns) {
@@ -158,6 +161,8 @@ load_data_vis <- function(id) {
                            ct_loaded=FALSE,
                            epi_loaded=FALSE,
                            displayed_filters=c())
+      
+      
       plot.info <-  reactiveValues(slideno=0 ,ggplot=NULL)
 
       userData <- reactive({
@@ -226,7 +231,7 @@ load_data_vis <- function(id) {
       ##Download button handler
       ## Not functional; FIXME: need to figure out how to 
       ## access reactive values for downloads. 
-      output$data_vis-dp1 <- downloadHandler(
+      output$dp1 <- downloadHandler(
         filename = function() {
           paste("viro-plots-", Sys.Date(), ".pdf", sep="")
         },
@@ -237,17 +242,20 @@ load_data_vis <- function(id) {
         }
       )
       
+
       ## Dynamic Filtering 
       filter_cols <- reactive({ #changed from reactive
         list(input$epifilter_candidates,input$ctfilter_candidates)
       })
       
+
       ## On filter column selection, create
       ## UI objects for selectors containing unique values for 
       ## those columns.  
       ##
       ## On unclick of a column, delete UI objects. 
-      observeEvent(filter_cols(), { 
+      observeEvent(filter_cols(), {
+        browser()
         candidates <- colnames(rv$ct_data[, sapply(rv$ct_data, class) %in% c('character', 'factor','numeric','Date')]) #place in reactive statement -- doesn't need to re-execute!
         selected_filters <- input$ctfilter_candidates
         old_filters <- rv$displayed_filters
