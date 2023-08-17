@@ -47,19 +47,16 @@ is TRUE.
 if symptomatic is TRUE.
 }
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other simulation functions: 
 \code{\link{simulate_infection_times}()},
 \code{\link{simulate_observations_wrapper}()},
 \code{\link{simulate_seir_process}()},
+\code{\link{simulate_seir_wrapper}()},
 \code{\link{simulate_viral_loads_wrapper}()},
 \code{\link{simulate_viral_loads}()}
 }
 \author{
-James Hay, \email{jhay@hsph.harvard.edu}
+James Hay, \email{jameshay218@gmail.com}
 }
 \concept{simulation functions}

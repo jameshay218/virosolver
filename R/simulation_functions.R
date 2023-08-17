@@ -13,7 +13,7 @@
 #' 
 #' @return Returns a tibble containing true and observed viral loads.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family simulation functions
 #' 
 #' @export
@@ -109,51 +109,7 @@ simulate_viral_loads <- function(infection_times,
   return(combined_dat)
 }
 
-#' Simulate infection times
-#' 
-#' Infection times are simulated using the probability of infection and sample size n.
-#' 
-#' @param n Sample size. Must be an integer.
-#' @param prob_infection A vector containing probabilities of infection.
-#' @param overall_prob The overall probability of infection. NULL by default.
-#' 
-#' @return Returns a vector of infection times.
-#' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
-#' @family simulation functions
-#' 
-#'@export
 
-simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
-  
-  ## Sum the probability of infection to get overall probability of infection
-  if(is.null(overall_prob)){
-    overall_prob <- sum(prob_infection)
-  }
-  
-  ## Scale the probability infection by the overall probability of infection
-  scaled_prob<- prob_infection/sum(prob_infection)
-  
-  are_infected <- numeric(n)
-  infection_times <- numeric(n)
-  
-  ## For each sample n, simulate infection from a binomial distribution using the 
-  ## overall probability of infection. 
-  for(i in 1:n){
-    infection <- rbinom(1,1, overall_prob)
-    are_infected[i] <- infection
-    ## If infected, sample from the probabilities of infection using the scaled
-    ## probability of infection
-    if(infection == 1){
-      t_inf <- sample(1:length(prob_infection), 1, prob=scaled_prob)
-      infection_times[i] <- t_inf
-    } else {
-      ## If not infected, assign -1 to infection times
-      infection_times[i] <- -1
-    }
-  }
-  return(infection_times)
-}
 
 #' Simulate full line list data
 #'
@@ -177,7 +133,7 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
 #'
 #' @return A tibble with line list data for all individuals in the population.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family simulation functions
 #'
 #' @export
@@ -209,97 +165,6 @@ simulate_observations_wrapper <- function(
   inc_dat
 }
 
-#' Simulate SEIR model
-#' 
-#' Simulates a deterministic SEIR model from model parameters, times to solve over, and 
-#' population size.
-#' 
-#' @param pars SEIR model parameters.
-#' @param times Times over which the model is solved.
-#' @param N Population size. Defaults to 100000.
-#' 
-#' @return Returns a list of 7 things: 
-#' 1. Plot of all SEIR compartments over time
-#' 2. Plot of incidence and prevalence over time
-#' 3. Solution of ordinary differential equation
-#' 4. Absolute incidence per time point (raw incidence)
-#' 5. Per capita incidence per time point
-#' 6. Per capita prevalence (compartments E+I) per time point
-#' 7. Overall probability of infection
-#' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
-#' @family simulation functions
-#' 
-#' @export
-
-simulate_seir_process <- function(pars, times, N=100000){
-  ## Pull parameters for SEIR model
-  seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
-  ## Set up initial conditions.
-  ## Note if population_n=1, then solves everything per capita
-  init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0,0)
-  
-  ## Solve the SEIR model using the rlsoda package
-  #sol <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
-  #                      deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
-  
-  ## Solve the SEIR model using the lsoda package. lsoda runs about 4x slower than rlsoda, but
-  ## the lsoda package is available on CRAN, making it more user-friendly.
-  sol <- deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
-                      dllname="virosolver",initfunc="initmodSEIR",
-                      nout=0, rtol=1e-6,atol=1e-6)
-  
-  ## Convert to data frame and column names
-  sol <- as.data.frame(sol)
-  colnames(sol) <- c("time","S","E","I","R","cumu_exposed","cumu_infected")
-  ## Get Rt
-  sol$Rt <- (sol$S) * pars["R0"]
-  
-  ## Shift time for start
-  sol$time <- sol$time + floor(pars["t0"])
-  
-  ## Dummy rows from pre-seeding
-  if(pars["t0"] > 0){
-    dummy_row <- data.frame("time"=0:(floor(unname(pars["t0"]))-1),"S"=N,"E"=0,"I"=0,"R"=0,"cumu_exposed"=0,"cumu_infected"=0,"Rt"=unname(pars["R0"])*N)
-    sol <- bind_rows(dummy_row, sol)
-  }
-  sol <- sol[sol$time %in% times,]
-  
-  ## Pull raw incidence in absolute numbers
-  inc <- c(0,diff(sol[,"cumu_exposed"]))
-  inc <- pmax(0, inc)
-  
-  ## Get per capita incidence and prevalence
-  per_cap_inc <- inc/N
-  per_cap_prev <- (sol$E + sol$I)/N
-  
-  ## Melt solution (wide to long format) and get per capita
-  sol <- reshape2::melt(sol, id.vars="time")
-  sol$value <- sol$value/N
-  
-  ## Plot all compartments
-  p <- ggplot(sol) +
-    geom_line(aes(x=time,y=value,col=variable)) +
-    ylab("Per capita") +
-    xlab("Date") +
-    theme_bw()
-  
-  ## Plot incidence and prevalence
-  p_inc <- ggplot(data.frame(x=times,y=per_cap_inc,y1=per_cap_prev)) +
-    geom_line(aes(x=x,y=y),col="red") +
-    geom_line(aes(x=x,y=y1),col="blue") +
-    ylab("Per capita incidence (red)\n and prevalence (blue)") +
-    xlab("Date") +
-    theme_bw()
-  
-  return(list(plot=p,
-              incidence_plot=p_inc,
-              seir_outputs=sol,
-              raw_incidence=inc,
-              per_cap_incidence=per_cap_inc,
-              per_cap_prevalence=per_cap_prev,
-              overall_prob_infection=sum(per_cap_inc)))
-}
 
 #' Simulate reporting
 #' 
@@ -327,7 +192,7 @@ simulate_seir_process <- function(pars, times, N=100000){
 #' 2. A plot of incidence for both observed individuals and the entire simulated population.
 #' 3. Plot growth rate of cases/infections in the entire population and observed population.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family simulation functions
 #' 
 #' @export
@@ -403,7 +268,6 @@ simulate_reporting <- function(individuals,
                confirmed_time=sampled_time)
     }
   }
-  
   ## Plot incidence of infections,  onsets, confirmations and number sampled per day
   ## Get grouped (not line list) subset data
   grouped_dat <- sampled_individuals %>% 
@@ -415,6 +279,7 @@ simulate_reporting <- function(individuals,
     rename(var=name,
            t=value,
            n=n) %>%
+    ungroup() %>%
     complete(var, nesting(t),fill = list(n = 0)) %>%
     mutate(ver="Sampled individuals")
   
@@ -428,6 +293,7 @@ simulate_reporting <- function(individuals,
     rename(var=name,
            t=value,
            n=n) %>%
+    ungroup() %>%
     complete(var, nesting(t),fill = list(n = 0)) %>%
     mutate(ver="All individuals")
   
@@ -483,7 +349,7 @@ simulate_reporting <- function(individuals,
 #' @return A tibble with the line list data and the viral load/ct/observed ct at the time of 
 #' sample collection.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family simulation functions
 #' 
 #' @export
@@ -538,7 +404,7 @@ simulate_viral_loads_wrapper <- function(linelist,
 #' 
 #' @return Dataframe of simulated Ct values and corresponding ages.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family viral load functions
 #' 
 #' @export
@@ -587,7 +453,7 @@ simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
 #' 
 #' @return Dataframe of simulated Ct values and corresponding ages.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family viral load functions
 #' 
 #' @export
@@ -622,5 +488,30 @@ simulate_viral_loads_example_symptoms <- function(ages, kinetics_pars,
     rename(age=days_since_infection)
   
   return(sim_dat)
+}
+
+
+#' Simulate binary PCR results (detectables) for the line list dataset. 
+#' 
+#' @param linelist the line list for observed individuals
+#' @param pars vector of named parameters for the detectability curve model
+#' 
+#' @return A tibble with the line list data and the PCR status at the time of sampled
+#' @export
+#' @author James Hay, \email{jameshay218@@gmail.com}
+#' @family viral load functions
+simulate_detectable_wrapper <- function(linelist,
+                                        pars){
+  ## Control for changing standard deviation
+  detectable_dat <- linelist %>% 
+    ## Fix infection time for uninfected individuals
+    mutate(infection_time = ifelse(is.na(infection_time),-100, infection_time)) %>%
+    group_by(i) %>% 
+    mutate(days_since_infection = pmax(sampled_time - infection_time,-1),
+           pcr_detect_prob=ifelse(days_since_infection > 0, prob_detectable_curve(pars,days_since_infection),0),
+           pcr_status=rbinom(n(),1,pcr_detect_prob)) %>%
+    ungroup() %>%
+    mutate(infection_time = ifelse(infection_time < 0, NA, infection_time))
+  return(detectable_dat)
 }
 

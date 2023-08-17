@@ -34,19 +34,16 @@ Returns a tibble containing true and observed viral loads.
 Takes infection times, the times over which to solve the model, and
 the viral kinetics parameters and returns a tibble containing true and observed viral loads.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other simulation functions: 
 \code{\link{simulate_infection_times}()},
 \code{\link{simulate_observations_wrapper}()},
 \code{\link{simulate_reporting}()},
 \code{\link{simulate_seir_process}()},
+\code{\link{simulate_seir_wrapper}()},
 \code{\link{simulate_viral_loads_wrapper}()}
 }
 \author{
-James Hay, \email{jhay@hsph.harvard.edu}
+James Hay, \email{jameshay218@gmail.com}
 }
 \concept{simulation functions}

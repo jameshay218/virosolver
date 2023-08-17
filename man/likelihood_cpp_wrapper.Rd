@@ -26,7 +26,7 @@ collection and ct for the Ct values.}
 
 \item{prob_infection}{Probability of infection.}
 
-\item{pos_only}{only use detectable Ct values? FALSE by default.}
+\item{pos_only}{Flag to only use detectable Ct values. FALSE by default.}
 
 \item{undetectable_counts}{Number of undetectable Ct samples. NULL by default.}
 }
@@ -36,10 +36,6 @@ Returns the likelihood.
 \description{
 This function returns the likelihood of observing a particular set of
 Ct values conditional on the underlying model parameters.
-}
-\examples{
-FIX ME
-
 }
 \seealso{
 Other likelihood functions: 

@@ -42,10 +42,6 @@ model uses multiple cross-sectional samples.
 #' @param parTab A vector of model parameters with names corresponding to the parameter
 control table.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other create posterior functions: 
 \code{\link{create_post_func_seeirr}()},

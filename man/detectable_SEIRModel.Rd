@@ -11,9 +11,6 @@ detectable_SEIRModel(pars, times)
 
 \item{times}{Vector of labeled time points for incidence calculation.}
 }
-\value{
-
-}
 \description{
 This function solves the SEIR ODEs for a
 series of time points and returns a vector
@@ -40,6 +37,6 @@ Other incidence functions:
 \code{\link{solveSEIRswitch_rlsoda}()}
 }
 \author{
-James Hay, \email{jhay@hsph.harvard.edu}
+James Hay, \email{jameshay218@gmail.com}
 }
 \concept{incidence functions}

@@ -48,6 +48,6 @@ Other incidence functions:
 \code{\link{solveSEIRswitch_rlsoda_wrapper}()}
 }
 \author{
-James Hay, \email{jhay@hsph.harvard.edu}
+James Hay, \email{jameshay218@gmail.com}
 }
 \concept{incidence functions}

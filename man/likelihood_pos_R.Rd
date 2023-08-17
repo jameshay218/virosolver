@@ -26,10 +26,6 @@ of Ct samples that are detectable.Despite being slower than the corresponding li
 function written in C, it more closely matches the written equations in the paper and
 is retained for didactic purposes.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other likelihood functions: 
 \code{\link{likelihood_R}()},

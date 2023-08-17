@@ -100,7 +100,7 @@
 #' page. By default, the app uses this data to populate the 
 #' epi data visualization tab. 
 #' @docType data
-#' @usage data(example_epi_data.RData)
+#' @usage data(example_epi_data)
 #' @format A data frame with 50000 rows and 5 variables:
 #' \describe{
 #'     \item{Country}{Country associated with case numbers.}
@@ -110,4 +110,4 @@
 #'     \item{Date}{Date of case reporting}
 #' }
 #' @family example_data
-"example_epi_data.RData"
+"example_epi_data"

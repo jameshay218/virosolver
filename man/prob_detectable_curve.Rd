@@ -19,10 +19,6 @@ viral loads.
 This function takes the model parameters and returns a gamma-distributed curve of
 the probabilities of detectable viral loads with parameters pars and ages.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other likelihood functions: 
 \code{\link{likelihood_R}()},

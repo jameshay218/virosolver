@@ -18,7 +18,7 @@ pred_dist_wrapper(
 \arguments{
 \item{test_cts}{Vector of Ct values.}
 
-\item{obs_times}{Vector of times at which data was collected (cross sections).}
+\item{obs_times}{Vector of times at which samples were collected (cross sections).}
 
 \item{ages}{Vector of ages (time since infection).}
 
@@ -36,16 +36,14 @@ This function calculates predicted Ct value densities for each observed
 time and returns a tibble of Ct values, predicted Ct value densities,
 and observed times.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other viral load functions: 
+\code{\link{simulate_detectable_wrapper}()},
+\code{\link{simulate_viral_loads_example_symptoms}()},
 \code{\link{simulate_viral_loads_example}()},
 \code{\link{viral_load_func}()}
 }
 \author{
-James Hay, \email{jhay@hsph.harvard.edu}
+James Hay, \email{jameshay218@gmail.com}
 }
 \concept{viral load functions}

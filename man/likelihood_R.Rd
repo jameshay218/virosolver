@@ -26,10 +26,6 @@ parameters. Despite being slower than the corresponding likelihood function
 written in C, it more closely matches the written equations in the paper
 and is retained in the package for didactic purposes.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other likelihood functions: 
 \code{\link{likelihood_cpp_wrapper}()},

@@ -16,7 +16,8 @@ generate_viable_start_pars(
 )
 }
 \arguments{
-\item{obs_dat}{Dataframe containing observed Ct values.}
+\item{obs_dat}{Tibble of observed data. Contains two columns, t for time of sample
+collection and ct for the Ct values.}
 
 \item{CREATE_POSTERIOR_FUNC}{Creates the posterior function
 used in the MCMC framework for detectable Ct values.}
@@ -31,7 +32,7 @@ given vector of parameter values given the prior means and sds.}
 i.e, those below a specified threshold,  should be used. Set to FALSE
 by default.}
 
-\item{partab}{Dataframe containing parameters corresponding
+\item{partab}{Tibble containing parameters corresponding
 to underlying incidence model (e.g. SEIR, SEEIRR).}
 }
 \value{
@@ -41,10 +42,6 @@ a finite likelihood.
 \description{
 This function is used to generate random starting values
 for the MCMC procedure.
-}
-\examples{
-FIX ME
-
 }
 \author{
 James Hay, \email{jhay@hsph.harvard.edu}

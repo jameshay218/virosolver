@@ -24,10 +24,6 @@ This function returns the likelihood of observing a particular set of Ct
 values conditional on the underlying model parameters using only the proportion
 of Ct samples that are detectable.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other likelihood functions: 
 \code{\link{likelihood_R}()},

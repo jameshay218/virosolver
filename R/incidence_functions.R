@@ -8,7 +8,7 @@
 #' 
 #' @return Returns incidence values for given points in time.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -40,7 +40,7 @@ solveSEIRModel_lsoda_wrapper <- function(pars, times){
 #' 
 #' @return Returns incidence values for given points in time.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -71,7 +71,7 @@ solveSEIRModel_rlsoda_wrapper <- function(pars, times){
 #' 
 #' @return Returns incidence values for given points in time.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -104,7 +104,7 @@ solveSEIRswitch_rlsoda_wrapper <- function(pars, times){
 #' 
 #' @return Returns incidence values for given points in time.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -136,7 +136,7 @@ solveSEEIRRModel_rlsoda_wrapper <- function(pars, times){
 #' 
 #' @return Returns detectable prevalence values for given points in time.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -166,7 +166,7 @@ detectable_SEEIRRModel <- function(pars, times){
 #' 
 #' @return Returns dataframe of variables solved for using SEEIRR ODEs.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -200,7 +200,7 @@ SEEIRRModel <- function(pars, times){
 #' 
 #' @return Returns incidence for given time points
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -227,7 +227,7 @@ exponential_growth_model <- function(pars, times){
 #' 
 #' @return Returns incidence for given time points.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -274,7 +274,7 @@ gaussian_process_model <- function(pars, times){
 #' @return Returns daily infection probabilities in the format 
 #' expected by the Gaussian process model.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -314,7 +314,7 @@ reverse_gp_model <- function(desired_probs, pars, times){ ## FIXME: review under
 #' @return Returns matrix of class deSolve containing solutions for SEIR ODEs 
 #' for each time in ts.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -345,7 +345,7 @@ solveSEIRModel_lsoda <- function(ts, init, pars,compatible=FALSE){
 #' @return Returns matrix of class deSolve containing solutions for SEIR ODEs 
 #' for each time in ts.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -376,7 +376,7 @@ solveSEIRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
 #' @return Returns matrix of class deSolve containing solutions for SEIR ODEs 
 #' for each time in ts.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -406,7 +406,7 @@ solveSEIRswitch_rlsoda <- function(ts, init, pars,compatible=FALSE){
 #' @return Returns matrix of class deSolve containing solutions for SEEIRR ODEs 
 #' for each time in ts.
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME
@@ -431,7 +431,7 @@ solveSEEIRRModel_rlsoda <- function(ts, init, pars,compatible=FALSE){
 #' 
 #' @return 
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family incidence functions
 #' 
 #' @examples FIX ME

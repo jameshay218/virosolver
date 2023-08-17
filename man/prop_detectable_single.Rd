@@ -21,10 +21,6 @@ Returns a vector of probabilities.
 \description{
 Gives the proportion of infections still detectable for a single time since infection (a)
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other likelihood functions: 
 \code{\link{likelihood_R}()},

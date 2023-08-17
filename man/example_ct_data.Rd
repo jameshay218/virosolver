@@ -19,9 +19,12 @@ Observed Ct values simulated from an SEIR model, with 2000 individuals sampled a
 }
 \seealso{
 Other example_data: 
+\code{\link{example_epi_data}},
 \code{\link{example_gp_partab}},
 \code{\link{example_seir_incidence}},
-\code{\link{example_seir_partab}}
+\code{\link{example_seir_partab}},
+\code{\link{vignette_data1}},
+\code{\link{vignette_data2}}
 }
 \concept{example_data}
 \keyword{datasets}

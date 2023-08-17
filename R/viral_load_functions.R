@@ -9,7 +9,7 @@
 #' 
 #' @return Returns modal Ct or viral load values. 
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family viral load functions
 #' 
 #' @export
@@ -67,7 +67,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' 
 #' @return Tibble containing Ct values, densities, and times 
 #' 
-#' @author James Hay, \email{jhay@@hsph.harvard.edu}
+#' @author James Hay, \email{jameshay218@@gmail.com}
 #' @family viral load functions
 #' 
 #' @export

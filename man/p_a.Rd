@@ -24,11 +24,6 @@ Returns a vector of probabilities.
 \description{
 This is the Gumbel probability density function normalized to the observable values.
 }
-\examples{
-FIX ME
-
-
-}
 \seealso{
 Other likelihood functions: 
 \code{\link{likelihood_R}()},

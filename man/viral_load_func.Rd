@@ -24,16 +24,14 @@ Returns modal Ct or viral load values.
 This function returns modal Ct values or viral load values, if
 convert_vl flag is set to TRUE.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other viral load functions: 
 \code{\link{pred_dist_wrapper}()},
+\code{\link{simulate_detectable_wrapper}()},
+\code{\link{simulate_viral_loads_example_symptoms}()},
 \code{\link{simulate_viral_loads_example}()}
 }
 \author{
-James Hay, \email{jhay@hsph.harvard.edu}
+James Hay, \email{jameshay218@gmail.com}
 }
 \concept{viral load functions}

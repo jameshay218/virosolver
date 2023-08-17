@@ -34,10 +34,6 @@ Creates a new function which calculates the posterior probability of a set
 of parameter values conditional on data that include only individuals with
 detectable PCR values on the sample collection day.
 }
-\examples{
-FIX ME
-
-}
 \seealso{
 Other create posterior functions: 
 \code{\link{create_post_func_seeirr_combined}()},
