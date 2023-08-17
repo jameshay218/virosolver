@@ -20,7 +20,8 @@
 #' @family simulation functions
 #' 
 #' @export
-simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_model=FALSE,beta_smooth=0.8){
+simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_model=FALSE,beta_smooth=0.8,
+                                  convert_daily=TRUE){
   ## Choose which version of the model to solve
   if(version == "ode"){
     ## Deterministic SEIR model
@@ -43,15 +44,11 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
       beta3 <- pars["R0_3"]*gamma1
       I0 <- ceiling(pars["I0"]*N)
       ## Odin stochastic SEIR model generator
-      #seir <- seir_generator_switch(beta1=beta1,beta2=beta2,beta3=beta3,
-      #                              sigma=sigma1,gamma=gamma1,
-      #                              S_ini=N-I0,I_ini=I0,
-      #                              t_switch1=pars["t_switch1"],t_switch2=pars["t_switch2"])
       betas <- rep(beta3, length(times))
       betas[which(times < pars["t_switch2"])] <- beta2
       betas[which(times < pars["t_switch1"])] <- beta1
       betas <- smooth.spline(betas,spar=beta_smooth)$y
-      seir <- seir_generator_interpolate(betat=times,betay=betas,sigma=sigma1,gamma=gamma1,S_ini=N-I0,I_ini=I0)
+      seir <- seir_generator_interpolate$new(betat=times,betay=betas,sigma=sigma1,gamma=gamma1,S_ini=N-I0,I_ini=I0)
       
     } else {
       gamma1 <- 1/pars["infectious"]
@@ -59,7 +56,7 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
       beta1 <- pars["R0"]*gamma1
       I0 <- ceiling(pars["I0"]*N)
       ## Odin stochastic SEIR model generator
-      seir <- seir_generator(beta=beta1,sigma=sigma1,gamma=gamma1,S_ini=N-I0,I_ini=I0)
+      seir <- seir_generator$new(beta=beta1,sigma=sigma1,gamma=gamma1,S_ini=N-I0,I_ini=I0)
     }
     ## Solve model
     res <- seir$run(times)
@@ -72,7 +69,11 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
     
     ## Dummy rows from pre-seeding
     if(pars["t0"] > 0){
-      dummy_row <- data.frame("step"=0:(floor(unname(pars["t0"]))-1),"S"=N,"E"=0,"I"=0,"R"=0,"inc"=0)
+      if("incubation" %in% names(pars)){
+        dummy_row <- data.frame("step"=0:(floor(unname(pars["t0"]))-1),"S"=N,"E"=0,"I"=0,"R"=0,"inc"=0)
+      } else {
+        dummy_row <- data.frame("step"=0:(floor(unname(pars["t0"]))-1),"S"=N,"I"=0,"R"=0,"inc"=0)
+      }
       res <- bind_rows(dummy_row, res)
     }
     res <- res[res$step %in% times,]
@@ -89,9 +90,25 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
   } 
   ## Get absolute incidence
   incidence <- incidence * N
-  
   ## Reshape solution
   res_melted <- res %>% pivot_longer(-step)
+  if(convert_daily){
+    res_melted %>% mutate(step = floor(step)) %>% 
+      group_by(name, step) %>% 
+      summarize(value=mean(value)) %>%
+      ungroup()
+    
+    sum_n_vector <- function (v, n) 
+    {
+      nv <- length(v)
+      if (nv%%n) 
+        v[ceiling(nv/n) * n] <- NA
+      colSums(matrix(v, n), na.rm = TRUE)
+    }
+    
+    incidence <- sum_n_vector(incidence, 1/diff(times)[1])*diff(times)[1]
+    times <- unique(floor(times))
+  }
   
   ## Compartment plot
   p_compartments <- res_melted %>% 
@@ -145,12 +162,11 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
   
   ## Get daily growth rate around the peak
   gr_crossover <- GR_all %>% filter(ver == "daily") %>%
-    filter(t < 250 & t > 100) %>%
     mutate(abs_gr = abs(GR)) %>%
     filter(abs_gr == min(abs_gr, na.rm=TRUE)) %>% pull(t)
   
   ## Average growth rates
-  p_gr <- ggplot(GR_all %>% filter(ver != "daily")) +
+  p_gr <- ggplot(GR_all) +
     geom_line(aes(x=t,y=GR,col=ver)) +
     geom_hline(yintercept=0,linetype="dashed") +
     geom_vline(xintercept=gr_crossover,linetype="dotted")+
@@ -174,6 +190,7 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
   
   list(seir_outputs=res, 
        incidence=incidence,
+       per_cap_incidence=incidence/population_n,
        overall_prob=overall_prob,
        plot=inc_plot, 
        growth_rates=GR_all,
@@ -203,26 +220,60 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
 #' 
 #' @export
 
-simulate_seir_process <- function(pars, times, N=100000){
-  ## Pull parameters for SEIR model
-  seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
-  ## Set up initial conditions.
-  ## Note if population_n=1, then solves everything per capita
-  init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0,0)
+simulate_seir_process <- function(pars, times, N=100000, switch_model=FALSE){
+  if(switch_model){
+    ## Pull parameters for SEIR model
+    seir_pars <- c(pars["R0_1"]*(1/pars["infectious"]),pars["R0_2"]*(1/pars["infectious"]),pars["R0_3"]*(1/pars["infectious"]),
+                   1/pars["incubation"],1/pars["infectious"],
+                   pars["t_switch1"],pars["t_switch2"])
+    
+    ## Set up initial conditions.
+    ## Note if population_n=1, then solves everything per capita
+    init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0)
+    
+    ## Solve the SEIR model using the rlsoda package
+    sol <- rlsoda::rlsoda(init, times, C_SEIR_switch_rlsoda, parms=seir_pars, dllname="virosolver",
+                          deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
+  } else {
+    if("incubation" %in% names(pars)){
+    ## Pull parameters for SEIR model
+      seir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["incubation"],1/pars["infectious"])
+      ## Set up initial conditions.
+      ## Note if population_n=1, then solves everything per capita
+      # init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0)
+      init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0)
+      
+        ## Solve the SEIR model using the rlsoda package
+        #sol <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
+        #                      deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
+        ## Solve the SEIR model using the lsoda package. lsoda runs about 4x slower than rlsoda, but
+        ## the lsoda package is available on CRAN, making it more user-friendly.
+        sol <- deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
+                            dllname="virosolver",initfunc="initmodSEIR",
+                            nout=0, rtol=1e-10,atol=1e-10)
+        dummy_row <- data.frame("time"=0:(floor(unname(pars["t0"]))-1),"S"=N,"E"=0,"I"=0,"R"=0,"cumu_exposed"=0,"Rt"=unname(pars["R0"])*N)
+        use_colnames <- c("time","S","E","I","R","cumu_exposed")
+        
+    } else {
+      sir_pars <- c(pars["R0"]*(1/pars["infectious"]),1/pars["infectious"])
+      ## Set up initial conditions.
+      ## Note if population_n=1, then solves everything per capita
+      # init <- c((1-pars["I0"])*N,0,pars["I0"]*N,0,0)
+      init <- c((1-pars["I0"])*N,pars["I0"]*N,0,0)
+      
+      ## Solve the SEIR model using the rlsoda package
+      sol <- deSolve::ode(init, times, func="SIR_model_lsoda",parms=sir_pars,
+                          dllname="virosolver",initfunc="initmodSIR",
+                          nout=0, rtol=1e-10,atol=1e-10)
+      dummy_row <- data.frame("time"=0:(floor(unname(pars["t0"]))-1),"S"=N,"I"=0,"R"=0,"cumu_exposed"=0,"Rt"=unname(pars["R0"])*N)
+      use_colnames <- c("time","S","I","R","cumu_exposed")
+    }
+  }
   
-  ## Solve the SEIR model using the rlsoda package
-  #sol <- rlsoda::rlsoda(init, times, C_SEIR_model_rlsoda, parms=seir_pars, dllname="virosolver",
-  #                      deSolve_compatible = TRUE,return_time=TRUE,return_initial=TRUE,atol=1e-10,rtol=1e-10)
-  
-  ## Solve the SEIR model using the lsoda package. lsoda runs about 4x slower than rlsoda, but
-  ## the lsoda package is available on CRAN, making it more user-friendly.
-  sol <- deSolve::ode(init, times, func="SEIR_model_lsoda",parms=seir_pars,
-                      dllname="virosolver",initfunc="initmodSEIR",
-                      nout=0, rtol=1e-6,atol=1e-6)
-  
+
   ## Convert to data frame and column names
   sol <- as.data.frame(sol)
-  colnames(sol) <- c("time","S","E","I","R","cumu_exposed","cumu_infected")
+  colnames(sol) <- use_colnames
   ## Get Rt
   sol$Rt <- (sol$S) * pars["R0"]
   
@@ -231,18 +282,22 @@ simulate_seir_process <- function(pars, times, N=100000){
   
   ## Dummy rows from pre-seeding
   if(pars["t0"] > 0){
-    dummy_row <- data.frame("time"=0:(floor(unname(pars["t0"]))-1),"S"=N,"E"=0,"I"=0,"R"=0,"cumu_exposed"=0,"cumu_infected"=0,"Rt"=unname(pars["R0"])*N)
     sol <- bind_rows(dummy_row, sol)
   }
   sol <- sol[sol$time %in% times,]
   
   ## Pull raw incidence in absolute numbers
-  inc <- c(0,diff(sol[,"cumu_exposed"]))
+  inc <- c(pars["I0"],diff(sol[,"cumu_exposed"]))
   inc <- pmax(0, inc)
   
   ## Get per capita incidence and prevalence
   per_cap_inc <- inc/N
-  per_cap_prev <- (sol$E + sol$I)/N
+  if("incubation" %in% names(pars)){ 
+    per_cap_prev <- (sol$E + sol$I)/N
+  } else {
+    per_cap_prev <- (sol$I)/N
+  }
+  
   
   ## Melt solution (wide to long format) and get per capita
   sol <- reshape2::melt(sol, id.vars="time")
@@ -318,3 +373,143 @@ simulate_infection_times <- function(n, prob_infection, overall_prob=NULL){
   }
   return(infection_times)
 }
+
+
+
+
+## Adapted from http://epirecip.es/epicookbook/chapters/sir-stochastic-discretestate-discretetime/r_odin
+seir_generator <- odin::odin({
+  ## Core equations for transitions between compartments:
+  update(S) <- S - n_SE
+  update(E) <- E + n_SE - n_EI
+  update(I) <- I + n_EI - n_IR
+  update(R) <- R + n_IR
+  update(inc) <- n_SE
+  
+  ## Individual probabilities of transition:
+  p_SE <- 1 - exp(-beta * I / N) # S to E
+  p_EI <- 1 - exp(-sigma) # E to I
+  p_IR <- 1 - exp(-gamma) # I to R
+  
+  ## Draws from binomial distributions for numbers changing between
+  ## compartments:
+  n_SE <- rbinom(S, p_SE)
+  n_EI <- rbinom(E, p_EI)
+  n_IR <- rbinom(I, p_IR)
+  
+  ## Total population size
+  N <- S + E + I + R
+  
+  ## Initial states:
+  initial(S) <- S_ini
+  initial(E) <- E_ini
+  initial(I) <- I_ini
+  initial(R) <- 0
+  initial(inc) <- 0
+  
+  ## User defined parameters - default in parentheses:
+  S_ini <- user(1000)
+  E_ini <- user(0)
+  I_ini <- user(1)
+  beta <- user(0.2)
+  sigma <- user(0.15)
+  gamma <- user(0.1)
+  
+}, verbose = FALSE)
+
+
+
+## Adapted from http://epirecip.es/epicookbook/chapters/sir-stochastic-discretestate-discretetime/r_odin
+seir_generator_switch <- odin::odin({
+  ## Core equations for transitions between compartments:
+  update(S) <- S - n_SE
+  update(E) <- E + n_SE - n_EI
+  update(I) <- I + n_EI - n_IR
+  update(R) <- R + n_IR
+  update(inc) <- n_SE
+  
+  ## Individual probabilities of transition:
+  beta <- beta1*(step <= t_switch1) + beta2*(step > t_switch1 && step < t_switch2) + beta3*(step >= t_switch2)
+  
+  p_SE <- 1 - exp(-beta * I / N) # S to E
+  p_EI <- 1 - exp(-sigma) # E to I
+  p_IR <- 1 - exp(-gamma) # I to R
+  
+  ## Draws from binomial distributions for numbers changing between
+  ## compartments:
+  n_SE <- rbinom(S, p_SE)
+  n_EI <- rbinom(E, p_EI)
+  n_IR <- rbinom(I, p_IR)
+  
+  ## Total population size
+  N <- S + E + I + R
+  
+  ## Initial states:
+  initial(S) <- S_ini
+  initial(E) <- E_ini
+  initial(I) <- I_ini
+  initial(R) <- 0
+  initial(inc) <- 0
+  
+  ## User defined parameters - default in parentheses:
+  S_ini <- user(1000)
+  E_ini <- user(0)
+  I_ini <- user(1)
+  beta1 <- user(0.2)
+  beta2 <- user(0.2)
+  beta3 <- user(0.2)
+  sigma <- user(0.15)
+  gamma <- user(0.1)
+  t_switch1 <- user(25)
+  t_switch2 <- user(50)
+  
+  
+}, verbose = FALSE)
+
+
+## Adapted from http://epirecip.es/epicookbook/chapters/sir-stochastic-discretestate-discretetime/r_odin
+seir_generator_interpolate <- odin::odin({
+  ## Core equations for transitions between compartments:
+  update(S) <- S - n_SE
+  update(E) <- E + n_SE - n_EI
+  update(I) <- I + n_EI - n_IR
+  update(R) <- R + n_IR
+  update(inc) <- n_SE
+  
+  ## Individual probabilities of transition:
+  p_SE <- 1 - exp(-beta * I / N) # S to E
+  p_EI <- 1 - exp(-sigma) # E to I
+  p_IR <- 1 - exp(-gamma) # I to R
+  
+  ## Draws from binomial distributions for numbers changing between
+  ## compartments:
+  n_SE <- rbinom(S, p_SE)
+  n_EI <- rbinom(E, p_EI)
+  n_IR <- rbinom(I, p_IR)
+  
+  ## Total population size
+  N <- S + E + I + R
+  
+  ## Initial states:
+  initial(S) <- S_ini
+  initial(E) <- E_ini
+  initial(I) <- I_ini
+  initial(R) <- 0
+  initial(inc) <- 0
+  
+  ## User defined parameters - default in parentheses:
+  beta = interpolate(betat,betay,"constant")
+  output(beta) = beta
+  betat[] = user()
+  betay[] = user()
+  dim(betat) <- user()
+  dim(betay) <- length(betat)
+  
+  S_ini <- user(1000)
+  E_ini <- user(0)
+  I_ini <- user(1)
+  sigma <- user(0.15)
+  gamma <- user(0.1)
+  
+  
+}, verbose = FALSE)

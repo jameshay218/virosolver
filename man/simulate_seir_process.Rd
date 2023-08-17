@@ -4,7 +4,7 @@
 \alias{simulate_seir_process}
 \title{Simulate SEIR model}
 \usage{
-simulate_seir_process(pars, times, N = 1e+05)
+simulate_seir_process(pars, times, N = 1e+05, switch_model = FALSE)
 }
 \arguments{
 \item{pars}{SEIR model parameters.}

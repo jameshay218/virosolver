@@ -10,7 +10,8 @@ simulate_seir_wrapper(
   pars,
   version = "ode",
   switch_model = FALSE,
-  beta_smooth = 0.8
+  beta_smooth = 0.8,
+  convert_daily = TRUE
 )
 }
 \value{
