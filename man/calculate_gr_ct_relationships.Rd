@@ -12,7 +12,8 @@ calculate_gr_ct_relationships(
   cts = seq(0, 40, by = 1),
   population_n = 1,
   convert_daily = TRUE,
-  tstep = 1
+  tstep = 1,
+  symptom_surveillance = FALSE
 )
 }
 \description{

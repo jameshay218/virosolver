@@ -352,15 +352,33 @@ plot_distribution_fits <- function(chain, obs_dat, MODEL_FUNC, nsamps=100, pos_o
 #' 
 #' @export
 
-plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd, real_data=FALSE){
+plot_posterior_density <- function(chain, var_name, parTab, prior_mean, prior_sd, prior_dist="normal",real_data=FALSE){
   p <- ggplot(chain) +
     ## Plot density from MCMC chain (posterior distribution)
-    geom_density(aes_string(var_name),fill="red",alpha=0.25) +
+    geom_density(aes_string(var_name,y="..density.."),fill="red",alpha=0.25)
+  if(prior_dist == "normal"){
+    p <- p +
     ## Plot a normal function on top using the prior distribution 
     stat_function(data=data.frame(x=c(parTab[parTab$names == var_name,"lower_bound"],
                                       parTab[parTab$names == var_name,"upper_bound"])),
                   aes(x),col="blue",
-                  fun = dnorm, n = 101, args = list(mean = prior_mean, sd = prior_sd)) +
+                  fun = dnorm, n = 101, args = list(mean = prior_mean, sd = prior_sd))
+  } else if(prior_dist == "log-normal"){
+    p <- p +
+      ## Plot a normal function on top using the prior distribution 
+      stat_function(data=data.frame(x=c(parTab[parTab$names == var_name,"lower_bound"],
+                                        parTab[parTab$names == var_name,"upper_bound"])),
+                    aes(x),col="blue",
+                    fun = dlnorm, n = 101, args = list(meanlog = prior_mean, sdlog = prior_sd))
+  } else {
+    p <- p +
+      ## Plot a normal function on top using the prior distribution 
+      stat_function(data=data.frame(x=c(parTab[parTab$names == var_name,"lower_bound"],
+                                        parTab[parTab$names == var_name,"upper_bound"])),
+                    aes(x),col="blue",
+                    fun = prior_dist, n = 101, args = list(mean = prior_mean, sd = prior_sd))
+  }
+  p <- p +
     scale_y_continuous(expand=c(0,0)) +
     ylab("Density") +
     theme_classic()

@@ -223,7 +223,7 @@ simulate_reporting <- function(individuals,
       ## Symptomatic based surveillance. Observe individuals based on symptom onset date
       ## Subset by symptomatic individuals. Observe some fraction of these at some delay post symptom onset
       sampled_individuals <- sampled_individuals %>% 
-        filter(is_symp==1) %>% 
+        dplyr::filter(is_symp==1) %>% 
         sample_frac(frac_report) %>%
         mutate(sampled_time=onset_time+confirmation_delay,
                ## We sample individuals some number of days after symptom onset
@@ -241,7 +241,7 @@ simulate_reporting <- function(individuals,
         sampled_time1 <- timevarying_prob$t[index]
         sampled_indivs <- sample(indivs_test, sample_n,replace=FALSE)
         tmp_sampled_indivs[[index]] <- sampled_individuals %>% 
-          filter(i %in% sampled_indivs) %>% 
+          dplyr::filter(i %in% sampled_indivs) %>% 
           mutate(sampled_time=sampled_time1,
                  confirmed_time = sampled_time + confirmation_delay)
         indivs_test <- setdiff(indivs_test, sampled_indivs)
@@ -252,7 +252,7 @@ simulate_reporting <- function(individuals,
       ## This is quite different - if you have symptom onset on day t, there is a probability that you will be observed
       ## by symptomatic based surveillance. Observe individuals based on symptom onset date
       sampled_individuals <- sampled_individuals %>% 
-        filter(is_symp==1) %>% ## Subset for symptomatic
+        dplyr::filter(is_symp==1) %>% ## Subset for symptomatic
         left_join(timevarying_prob %>% rename(onset_time=t) %>% ## Join with time-varying reporting rate table
                     dplyr::select(-ver), by="onset_time") %>%
         group_by(i) 
@@ -262,7 +262,7 @@ simulate_reporting <- function(individuals,
       sampled_individuals$is_reported <- rbinom(nrow(sampled_individuals), 1, sampled_individuals$prob) 
       
       sampled_individuals <- sampled_individuals %>%
-        filter(is_reported == 1) %>% ## Only take detected individuals
+        dplyr::filter(is_reported == 1) %>% ## Only take detected individuals
         mutate(sampled_time=onset_time+confirmation_delay,
                ## We sample individuals some number of days after symptom onset
                confirmed_time=sampled_time)

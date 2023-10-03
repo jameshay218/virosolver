@@ -10,7 +10,7 @@
 #'                     intercept = 40, LOD = 3, incu = 5, t_switch = 13.3, level_switch = 38, 
 #'                     wane_rate2 = 1000, prob_detect = 0.103, t_unit = 1)
 #' calculate_gr_ct_relationships(model_pars, viral_load_pars, times, lastday, cts)
-calculate_gr_ct_relationships <- function(model_pars, viral_load_pars, times, lastday=35,cts=seq(0,40,by=1),population_n=1,convert_daily=TRUE,tstep=1){
+calculate_gr_ct_relationships <- function(model_pars, viral_load_pars, times, lastday=35,cts=seq(0,40,by=1),population_n=1,convert_daily=TRUE,tstep=1, symptom_surveillance=FALSE){
   skew <- function(values,weights) {
     weights_std <- weights/sum(weights, na.rm=TRUE)
     xbar <- sum(values*weights_std, na.rm=TRUE)
@@ -32,7 +32,7 @@ calculate_gr_ct_relationships <- function(model_pars, viral_load_pars, times, la
   ages <- 1:lastday
 
   # Create matrices of relative frequencies of observing age of infection and viral load by day of testing:
-  dat <- pred_dist_wrapper(cts, seq_along(times),1:lastday,viral_load_pars, incidence)
+  dat <- pred_dist_wrapper(cts, seq_along(times),1:lastday,viral_load_pars, incidence,symptom_surveillance=symptom_surveillance)
   
   for (i in 2:length(times)) {
     past_inc <- incidence[(i-1):(max(i-lastday,1))]
@@ -90,37 +90,37 @@ calculate_gr_ct_relationships <- function(model_pars, viral_load_pars, times, la
     theme_bw()
   
   ## Get mean of detectable Ct values
-  ct_dat_mean <- dat %>% filter(ct < max(cts)) %>% group_by(t) %>% 
+  ct_dat_mean <- dat %>% dplyr::filter(ct < max(cts)) %>% group_by(t) %>% 
     mutate(density_scaled=density/sum(density)) %>% 
     summarize(mean_ct=sum(ct*density_scaled)) 
   
   ## Get median of detectable Ct values
-  ct_dat_median <- dat %>% filter(ct < max(cts)) %>% group_by(t) %>% 
+  ct_dat_median <- dat %>% dplyr::filter(ct < max(cts)) %>% group_by(t) %>% 
     mutate(density_scaled=density/sum(density)) %>% 
     mutate(cumu_density=cumsum(density_scaled)) %>%
-    filter(cumu_density >= 0.5) %>%
-    filter(ct == min(ct)) %>% 
+    dplyr::filter(cumu_density >= 0.5) %>%
+    dplyr::filter(ct == min(ct)) %>% 
     select(ct, t) %>%
     rename(median_ct = ct)
   
-  ct_dat_lower25 <- dat %>% filter(ct < max(cts)) %>% group_by(t) %>% 
+  ct_dat_lower25 <- dat %>% dplyr::filter(ct < max(cts)) %>% group_by(t) %>% 
     mutate(density_scaled=density/sum(density)) %>% 
     mutate(cumu_density=cumsum(density_scaled)) %>%
-    filter(cumu_density >= 0.25) %>%
-    filter(ct == min(ct)) %>% 
+    dplyr::filter(cumu_density >= 0.25) %>%
+    dplyr::filter(ct == min(ct)) %>% 
     select(ct, t) %>%
     rename(median_ct = ct)
   
-  ct_dat_upper75 <- dat %>% filter(ct < max(cts)) %>% group_by(t) %>% 
+  ct_dat_upper75 <- dat %>% dplyr::filter(ct < max(cts)) %>% group_by(t) %>% 
     mutate(density_scaled=density/sum(density)) %>% 
     mutate(cumu_density=cumsum(density_scaled)) %>%
-    filter(cumu_density >= 0.75) %>%
-    filter(ct == min(ct)) %>% 
+    dplyr::filter(cumu_density >= 0.75) %>%
+    dplyr::filter(ct == min(ct)) %>% 
     select(ct, t) %>%
     rename(median_ct = ct)
 
   ## Get skew of detectable Ct values
-  ct_skew <- dat %>% filter(ct < max(cts)) %>%
+  ct_skew <- dat %>% dplyr::filter(ct < max(cts)) %>%
     group_by(t) %>% 
     mutate(density_scaled=density/sum(density)) %>% 
     mutate(mean_ct=sum(ct*density_scaled),top_part=(ct-mean_ct)^3,bot_part=(ct-mean_ct)^2) %>% 
@@ -211,20 +211,21 @@ calculate_gr_ct_relationships <- function(model_pars, viral_load_pars, times, la
 
 #' Calculate GR CT relationship for multiple R0s
 #' @export
-calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times, lastday=35, cts=seq(0,40,by=0.1), R0s){
+calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times, lastday=35, cts=seq(0,40,by=0.1), R0s,symptom_surveillance=FALSE){
   ## Solve model for each R0
   for(R0 in R0s){
     model_pars["R0"] <- R0
-    res <- virosolver::calculate_gr_ct_relationships(model_pars,viral_load_pars,times,lastday,cts,convert_daily=TRUE)
+    res <- virosolver::calculate_gr_ct_relationships(model_pars,viral_load_pars,times,lastday,cts,convert_daily=TRUE,
+                                                     symptom_surveillance=symptom_surveillance)
     res$all_dat$R0 <- R0
     all_dat <- bind_rows(all_dat, res$all_dat)
   }
   
-  all_dat <- all_dat %>% filter(ver == "daily")
+  all_dat <- all_dat %>% dplyr::filter(ver == "daily")
   
   ## Age plots
   p_rt_age_skew <- ggplot(all_dat %>% 
-                            filter(inc > model_pars["I0"])) + 
+                            dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=Rt,y=age_skew,col=R0,group=R0)) +
     geom_vline(xintercept=1,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
@@ -232,7 +233,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     xlab("Rt") +
     theme_use
   p_rt_age_mean <- ggplot(all_dat %>% drop_na() %>% 
-                            filter(inc > model_pars["I0"])) + 
+                            dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=Rt,y=age_mean,col=R0,group=R0)) +
     geom_vline(xintercept=1,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
@@ -241,7 +242,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     theme_use
   
   p_gr_age_skew <- ggplot(all_dat %>% 
-                            filter(inc > model_pars["I0"])) + 
+                            dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=GR,y=age_skew,col=R0,group=R0)) +
     geom_vline(xintercept=0,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
@@ -250,7 +251,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     theme_use
   
   p_gr_age_mean <- ggplot(all_dat %>% drop_na() %>% 
-                            filter(inc > model_pars["I0"])) + 
+                            dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=GR,y=age_mean,col=R0,group=R0)) +
     geom_vline(xintercept=0,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
@@ -262,7 +263,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
   
   ## Ct plots
   p_rt_mean <- ggplot(all_dat %>% drop_na() %>% 
-                        filter(inc > model_pars["I0"])) + 
+                        dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=Rt,y=mean_ct,col=R0,group=R0)) +
     geom_vline(xintercept=1,linetype="dashed") +
     scale_color_gradient(low="blue",high="red")+
@@ -270,7 +271,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     xlab("Rt") +
     theme_use
   
-  p_rt_skew <- ggplot(all_dat %>% filter(inc > model_pars["I0"])) + 
+  p_rt_skew <- ggplot(all_dat %>% dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=Rt,y=skew_ct,col=R0,group=R0)) +
     geom_vline(xintercept=1,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
@@ -279,7 +280,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     theme_use
   
   p_gr_mean <- ggplot(all_dat %>% drop_na()%>% 
-                        filter(inc > model_pars["I0"])) + 
+                        dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=GR,y=mean_ct,col=R0,group=R0)) +
     geom_vline(xintercept=0,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
@@ -288,11 +289,10 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     theme_use
   
   p_gr_skew <- ggplot(all_dat %>% 
-                        filter(inc > model_pars["I0"])) + 
+                        dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=GR,y=skew_ct,col=R0,group=R0)) +
     geom_vline(xintercept=0,linetype="dashed") +
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
-    scale_x_continuous(trans="reverse") +
     ylab("Skew of Ct values") +
     xlab("Growth rate of infections") +
     theme_use
@@ -301,7 +301,7 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
   
   
   p_both_ctA <- ggplot(all_dat %>% 
-                         filter(inc > model_pars["I0"])) + 
+                         dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=mean_ct,y=skew_ct,col=R0,group=R0))+
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
     ylab("Skew of Ct values") +
@@ -309,17 +309,17 @@ calculate_gr_ct_relationships_R0s <- function(model_pars, viral_load_pars, times
     theme_use 
   
   p_both_age <- ggplot(all_dat %>% 
-                         filter(inc > model_pars["I0"])) + 
+                         dplyr::filter(inc > model_pars["I0"])) + 
     geom_path(aes(x=age_mean,y=age_skew,col=R0,group=R0))+
     scale_color_gradient(low="blue",high="red",limits=range(R0s))+
     ylab("Skew of TSI") +
     xlab("Mean of TSI") +
     theme_use 
   
-  p_tsi_dist <- ggplot(all_dat %>% filter(t < lastday) %>% group_by(R0) %>% 
+  p_tsi_dist <- ggplot(all_dat %>% dplyr::filter(t < lastday) %>% group_by(R0) %>% 
                          mutate(inc=inc/sum(inc))) + 
     geom_line(aes(x=lastday-t,y=inc,group=R0,col=R0)) +
-    geom_vline(data=all_dat %>% filter(t == lastday),aes(xintercept=age_median)) +
+    geom_vline(data=all_dat %>% dplyr::filter(t == lastday),aes(xintercept=age_median)) +
     scale_color_gradient(low="blue",high="red",limits=range(R0s)) + 
     xlab("Time since infection") +
     ylab("Density") +
@@ -335,12 +335,12 @@ compare_tsi_dist_at_gr <- function(dat, grs,tolerance=0.01,lastday=35){
   
   get_tsi_dist_at_gr <- function(dat, gr=0){
     dat %>% 
-      filter(inc > sir_pars["I0"]) %>% 
+      dplyr::filter(inc > sir_pars["I0"]) %>% 
       ungroup() %>% 
       mutate(diff_gr=abs(GR - gr)) %>% 
       group_by(R0) %>% 
       mutate(use=diff_gr==min(diff_gr)) %>%
-      filter(use == TRUE) %>%
+      dplyr::filter(use == TRUE) %>%
       select(t, R0, GR, diff_gr) %>%
       ungroup()
   }
@@ -348,10 +348,10 @@ compare_tsi_dist_at_gr <- function(dat, grs,tolerance=0.01,lastday=35){
   for(gr in grs){
     tmp <- get_tsi_dist_at_gr(dat, gr) %>% 
       rename(use_t = t, closest_GR=GR) %>% 
-      filter(diff_gr < tolerance) %>%
+      dplyr::filter(diff_gr < tolerance) %>%
       mutate(GR_use=gr)
     use_tsi <- bind_rows(use_tsi, left_join(dat %>% ungroup(),tmp,by="R0") %>% 
-                           filter(!is.na(use_t), t <= use_t, t > use_t - lastday) %>%
+                           dplyr::filter(!is.na(use_t), t <= use_t, t > use_t - lastday) %>%
                            group_by(R0) %>% 
                            mutate(t = t-max(t)) %>%
                            group_by(R0) %>% 

@@ -10,7 +10,8 @@ calculate_gr_ct_relationships_R0s(
   times,
   lastday = 35,
   cts = seq(0, 40, by = 0.1),
-  R0s
+  R0s,
+  symptom_surveillance = FALSE
 )
 }
 \description{

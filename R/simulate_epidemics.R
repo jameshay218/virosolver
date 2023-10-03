@@ -109,10 +109,9 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
     incidence <- sum_n_vector(incidence, 1/diff(times)[1])*diff(times)[1]
     times <- unique(floor(times))
   }
-  
   ## Compartment plot
   p_compartments <- res_melted %>% 
-    filter(name %in% c("S","E","I","R","cumulative_incidence")) %>%
+    dplyr::filter(name %in% c("S","E","I","R","cumulative_incidence")) %>%
     ggplot() + geom_line(aes(x=step,y=value,col=name)) +
     ylab("Per capita") +
     xlab("Date") +
@@ -127,7 +126,7 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
     theme_bw()
   
   ## Rt plot
-  p_rt <- res_melted %>% filter(name == "Rt") %>%
+  p_rt <- res_melted %>% dplyr::filter(name == "Rt") %>%
     ggplot() +
     geom_line(aes(x=step,y=value),col="blue") +
     scale_y_continuous(limits=c(0,pars["R0"]+1)) +
@@ -161,9 +160,9 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
   }
   
   ## Get daily growth rate around the peak
-  gr_crossover <- GR_all %>% filter(ver == "daily") %>%
+  gr_crossover <- GR_all %>% dplyr::filter(ver == "daily") %>%
     mutate(abs_gr = abs(GR)) %>%
-    filter(abs_gr == min(abs_gr, na.rm=TRUE)) %>% pull(t)
+    dplyr::filter(abs_gr == min(abs_gr, na.rm=TRUE)) %>% pull(t)
   
   ## Average growth rates
   p_gr <- ggplot(GR_all) +
@@ -177,7 +176,7 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
     theme_bw()
   
   ## Daily growth rate
-  p_gr1 <- ggplot(GR_all %>% filter(ver == "daily")) +
+  p_gr1 <- ggplot(GR_all %>% dplyr::filter(ver == "daily")) +
     geom_line(aes(x=t,y=GR),col="black") +
     geom_hline(yintercept=0,linetype="dashed") +
     geom_vline(xintercept=gr_crossover,linetype="dotted")+
@@ -190,7 +189,7 @@ simulate_seir_wrapper <- function(N=100000, times, pars, version="ode",switch_mo
   
   list(seir_outputs=res, 
        incidence=incidence,
-       per_cap_incidence=incidence/population_n,
+       per_cap_incidence=incidence/N,
        overall_prob=overall_prob,
        plot=inc_plot, 
        growth_rates=GR_all,
