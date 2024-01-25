@@ -38,6 +38,7 @@ pred_age_since_inf_symptomatic <- function(max_incu_period, max_sampling_delay, 
     .Call('_virosolver_pred_age_since_inf_symptomatic', PACKAGE = 'virosolver', max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec)
 }
 
+#' @export
 likelihood_kinetics_model <- function(obs, ages, pars, test_ages, sd_mod_vec) {
     .Call('_virosolver_likelihood_kinetics_model', PACKAGE = 'virosolver', obs, ages, pars, test_ages, sd_mod_vec)
 }

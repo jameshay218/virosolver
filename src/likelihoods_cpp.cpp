@@ -526,7 +526,7 @@ NumericVector pred_age_since_inf_symptomatic(int max_incu_period,
 
 
 
-
+//' @export
 // [[Rcpp::export]]
 NumericVector likelihood_kinetics_model(NumericVector obs,
                                 NumericVector ages,
