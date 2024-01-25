@@ -10,6 +10,7 @@ plot_posterior_density(
   parTab,
   prior_mean,
   prior_sd,
+  prior_dist = "normal",
   real_data = FALSE
 )
 }

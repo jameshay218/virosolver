@@ -38,6 +38,10 @@ pred_age_since_inf_symptomatic <- function(max_incu_period, max_sampling_delay, 
     .Call('_virosolver_pred_age_since_inf_symptomatic', PACKAGE = 'virosolver', max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec)
 }
 
+likelihood_kinetics_model <- function(obs, ages, pars, test_ages, sd_mod_vec) {
+    .Call('_virosolver_likelihood_kinetics_model', PACKAGE = 'virosolver', obs, ages, pars, test_ages, sd_mod_vec)
+}
+
 viral_load_func_single_cpp <- function(tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl) {
     .Call('_virosolver_viral_load_func_single_cpp', PACKAGE = 'virosolver', tshift, desired_mode, t_switch, viral_peak, obs_sd, level_switch, true_0, yintercept, lod, wane_rate, wane_rate2, growth_rate, obs_t, convert_vl)
 }

@@ -210,7 +210,7 @@ prop_detectable_single <- function(a, pars, viral_loads, sd_mod){
   
   ## Probability of additional decline in detectability
   if(days_potential_loss >= 0){
-    additional_prob <- (1-pars["prob_detect"]*pars["t_unit"])^days_potential_loss
+    additional_prob <- (1-pars["prob_detect"])^days_potential_loss
   }
   
   main_probs <- extraDistr::pgumbel(LOD,mu=viral_loads[a],sigma=viral_load_sd, lower.tail=TRUE, log.p=FALSE)
@@ -242,7 +242,6 @@ prop_detectable_single <- function(a, pars, viral_loads, sd_mod){
 #' @export
 
 prop_detectable <- function(ages, pars, viral_loads){
-  
   ## Because we have a different standard deviation for different times
   ## Time at which standard deviation is reduced
   t_switch <-  pars["t_switch"] + pars["desired_mode"] + pars["tshift"]
@@ -257,7 +256,7 @@ prop_detectable <- function(ages, pars, viral_loads){
   decrease_vec <- (t_switch+1):(t_switch+pars["sd_mod_wane"])
   ## The rest are at sd_mod
   sd_mod[decrease_vec] <- 1 - ((1-pars["sd_mod"])/pars["sd_mod_wane"])*seq_len(pars["sd_mod_wane"])
-
+  
   ## Use the function for the proportion still detectable for a single time point
   vapply(ages, function(x){
     prop_detectable_single(x, pars, viral_loads, sd_mod)

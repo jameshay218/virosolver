@@ -30,7 +30,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
   true_0 <- pars["true_0"] 
   ct_intercept <- pars["intercept"] 
   wane_rate <- (height-level_switch)/t_switch
-  wane_rate2 <- (level_switch-ct_intercept)/pars["wane_rate2"]
+  wane_rate2 <- (level_switch-true_0)/pars["wane_rate2"]
   growth_rate <- (height-true_0)/desired_mode
 
   ## Categorizes observed Cts into time periods

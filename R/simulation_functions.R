@@ -205,7 +205,6 @@ simulate_reporting <- function(individuals,
   ## The basic form is that a constant fraction of individuals are reported each day
   n_indivs <- nrow(individuals)
   sampled_individuals <- individuals
-  
   ## If a flat reporting rate
   if(is.null(timevarying_prob)){
     ## Base case, individuals are sampled at random
@@ -213,12 +212,10 @@ simulate_reporting <- function(individuals,
       ## Sample a fraction of the overall line list and assign each individual a sample time (at random)
       ## and a confirmation time (with confirmation delay)
       sampled_individuals <- sampled_individuals %>% 
-        sample_frac(frac_report) %>%
-        group_by(i) %>%
-        mutate(sampled_time=sample(solve_times,n()),
-               ## We sample, but then have to wait for a result
-               confirmed_time=sampled_time+confirmation_delay) %>%
-        ungroup()
+        sample_frac(frac_report) 
+      sampled_individuals$sampled_time <- sample(solve_times,nrow(sampled_individuals),replace=TRUE)
+      sampled_individuals <- sampled_individuals %>%
+        ungroup() %>% mutate(confirmed_time=sampled_time+confirmation_delay)
     } else {
       ## Symptomatic based surveillance. Observe individuals based on symptom onset date
       ## Subset by symptomatic individuals. Observe some fraction of these at some delay post symptom onset
@@ -335,7 +332,8 @@ simulate_reporting <- function(individuals,
   
   list(sampled_individuals=sampled_individuals,
        plot=p_all, 
-       plot_gr=p_gr)
+       plot_gr=p_gr,
+       growth_rates=growth_rates_all)
 }
 
 #' Simulate observed Ct values for the line list dataset 
@@ -364,31 +362,48 @@ simulate_viral_loads_wrapper <- function(linelist,
   sd_mod[unmod_vec] <- 1
   decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
-  
+
+  t_until_clearance <- rnbinom(nrow(linelist), 1, prob=kinetics_pars["prob_detect"])
+  linelist$t_until_clearance <- t_until_clearance
   vl_dat <- linelist %>% 
     ## Fix infection time for uninfected individuals
     mutate(infection_time = ifelse(is.na(infection_time),-100, infection_time)) %>%
-    group_by(i) %>% 
     ## Pre-compute loss of detectability
     mutate(last_detectable_day = infection_time + ## From infection time
-             rnbinom(n(), 1, prob=kinetics_pars["prob_detect"]) + ## How long until full clearance?
+             t_until_clearance + ## How long until full clearance?
              kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"]) %>% ## With correct shift
-    mutate(ct=virosolver::viral_load_func(kinetics_pars, sampled_time, FALSE, infection_time)) %>%
+    mutate(ct = -1) %>%
     ## If sampled after loss of detectability or not infected, then undetectable
     mutate(ct = ifelse(sampled_time > last_detectable_day, 1000, ct),
            ct = ifelse(is_infected == 0, 1000, ct),
-           ct = ifelse(sampled_time < infection_time, 1000, ct)) %>%
-    ## Convert to viral load value and add noise to Ct
+           ct = ifelse(sampled_time < infection_time, 1000, ct))
+  
+  vl_dat_undetectable <- vl_dat %>% filter(ct != -1) %>% 
     mutate(vl = ((kinetics_pars["intercept"]-ct)/log2(10)) + kinetics_pars["LOD"],
            days_since_infection = pmax(floor(incu_period + confirmation_delay),-1),
-           sd_used = ifelse(days_since_infection > 0, kinetics_pars["obs_sd"]*sd_mod[days_since_infection],kinetics_pars["obs_sd"]),
-           ct_obs_sim = round(extraDistr::rgumbel(n(), ct, sd_used),2)) %>%
-    ## If some of the viral loads are greater than the intercept parameter, re-assign these
-    ## values to equal the intercept (the maximum number of cycles run on the PCR machine, always
-    ## assumed to be 40 in the simulations).
+           sd_used = NA,
+           ct_obs_sim=ct,
+           ct_obs = kinetics_pars["intercept"],
+           infection_time = ifelse(infection_time < 0, NA, infection_time))
+  
+  
+  vl_dat_detectable <- vl_dat %>% filter(ct == -1) %>% 
+    group_by(i) %>% 
+    mutate(ct=virosolver::viral_load_func(kinetics_pars, sampled_time, FALSE, infection_time)) %>%
+    ungroup() %>%
+    mutate(vl = ((kinetics_pars["intercept"]-ct)/log2(10)) + kinetics_pars["LOD"],
+           days_since_infection = pmax(floor(incu_period + confirmation_delay),-1),
+           sd_used = ifelse(days_since_infection > 0, kinetics_pars["obs_sd"]*sd_mod[days_since_infection],kinetics_pars["obs_sd"]))
+  
+  vl_dat_detectable$ct_obs_sim <- round(extraDistr::rgumbel(nrow(vl_dat_detectable), vl_dat_detectable$ct, vl_dat_detectable$sd_used),2)
+  
+  vl_dat_detectable <- vl_dat_detectable %>%
+    group_by(i) %>%
     mutate(ct_obs = pmin(ct_obs_sim, kinetics_pars["intercept"])) %>%
     ungroup() %>%
     mutate(infection_time = ifelse(infection_time < 0, NA, infection_time))
+  
+  vl_dat <- bind_rows(vl_dat_undetectable,vl_dat_detectable)
   
   return(viral_loads=vl_dat)
 }

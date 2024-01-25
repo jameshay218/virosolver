@@ -146,6 +146,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// likelihood_kinetics_model
+NumericVector likelihood_kinetics_model(NumericVector obs, NumericVector ages, NumericVector pars, NumericVector test_ages, NumericVector sd_mod_vec);
+RcppExport SEXP _virosolver_likelihood_kinetics_model(SEXP obsSEXP, SEXP agesSEXP, SEXP parsSEXP, SEXP test_agesSEXP, SEXP sd_mod_vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type obs(obsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type ages(agesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type test_ages(test_agesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type sd_mod_vec(sd_mod_vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(likelihood_kinetics_model(obs, ages, pars, test_ages, sd_mod_vec));
+    return rcpp_result_gen;
+END_RCPP
+}
 // viral_load_func_single_cpp
 double viral_load_func_single_cpp(double tshift, double desired_mode, double t_switch, double viral_peak, double obs_sd, double level_switch, double true_0, double yintercept, double lod, double wane_rate, double wane_rate2, double growth_rate, double obs_t, bool convert_vl);
 RcppExport SEXP _virosolver_viral_load_func_single_cpp(SEXP tshiftSEXP, SEXP desired_modeSEXP, SEXP t_switchSEXP, SEXP viral_peakSEXP, SEXP obs_sdSEXP, SEXP level_switchSEXP, SEXP true_0SEXP, SEXP yinterceptSEXP, SEXP lodSEXP, SEXP wane_rateSEXP, SEXP wane_rate2SEXP, SEXP growth_rateSEXP, SEXP obs_tSEXP, SEXP convert_vlSEXP) {

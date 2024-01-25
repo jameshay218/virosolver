@@ -81,7 +81,7 @@ NumericVector likelihood_cpp(NumericVector obs,
 
   // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
 
@@ -172,7 +172,7 @@ NumericVector likelihood_pos_only_cpp(NumericVector obs,
 
   // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
 
@@ -256,7 +256,7 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
   double yintercept = pars["intercept"];
   // Transformed parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
 
@@ -333,7 +333,7 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   
   // Transformed viral kinetics parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
   
@@ -452,7 +452,7 @@ NumericVector pred_age_since_inf_symptomatic(int max_incu_period,
   
   // Transformed viral kinetics parameters
   double wane_rate = (viral_peak - level_switch)/t_switch;
-  double wane_rate2 = (level_switch - yintercept)/pars["wane_rate2"];
+  double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
   
@@ -522,4 +522,91 @@ NumericVector pred_age_since_inf_symptomatic(int max_incu_period,
   }
   density = density/sum(density);
   return density;
+}
+
+
+
+
+// [[Rcpp::export]]
+NumericVector likelihood_kinetics_model(NumericVector obs,
+                                NumericVector ages,
+                                NumericVector pars,
+                                NumericVector test_ages,
+                                NumericVector sd_mod_vec){
+  // Parameters for viral kinetics model
+  double tshift = pars["tshift"];
+  double desired_mode = pars["desired_mode"];
+  double t_switch = pars["t_switch"];
+  double viral_peak = pars["viral_peak"];
+  double level_switch = pars["level_switch"];
+  double true_0 = pars["true_0"];
+  double prob_detect = pars["prob_detect"];
+  
+  // Parameters for observation process
+  double obs_sd = pars["obs_sd"]; // Gumbel distributed observation variation
+  double yintercept = pars["intercept"];
+  double lod = pars["LOD"];
+  
+  // Transformed parameters
+  double wane_rate = (viral_peak - level_switch)/t_switch;
+  double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
+  double growth_rate = (viral_peak - true_0)/desired_mode;
+  double t_switch1 = t_switch + desired_mode + tshift;
+  
+  // Store viral loads over time since infection
+  NumericVector vl_ages(test_ages.size());
+  // Re-normalize probabilities as given detectable, must sum to 1
+  NumericVector renormalizes(test_ages.size());
+  
+  // Probability detectable over time
+  NumericVector prob_detectable_dat(test_ages.size());
+  double prob_undetectable=0;
+  
+  // There may be an age at which the probability of retaining detectable vl is 0 because the
+  // viral load curve has waned so much. If we keep solving the likelihood up to this age,
+  // we get NaN because the renormalization sum is 0 (and we divdide by this). So track that
+  // oldest an infection can be and still be detectable
+  int max_age = 0;
+  
+  // Likelihoods for data points
+  NumericVector liks_tj(obs.size());
+  
+  // For each age since infection, calculated the expected viral load and normalization factor
+  for(int i = 0; i < vl_ages.size(); ++i){
+    vl_ages[i] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
+                                            obs_sd*sd_mod_vec[i],
+                                                             level_switch,true_0, yintercept,
+                                            lod,wane_rate, wane_rate2,growth_rate,
+                                            test_ages[i],false);
+    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);//*sd_mod_vec[i]);
+    //renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);
+    // If still detectable from gumbel dist, then increase max age
+    if(renormalizes[i] > 0) max_age++;
+  }
+  
+  // For each day since infection, calculate the probability that you are still detectable
+  // Conditional on the probability of infection and viral kinetics model
+  // Also calculate the overall probability of remaining undetectable the whole time
+  for(int i = 0; i < prob_detectable_dat.size(); ++i){
+    prob_detectable_dat[i] = prop_detectable_cpp(test_ages[i], vl_ages[i],obs_sd*sd_mod_vec[i],
+                                                 yintercept,t_switch1, prob_detect);
+  }
+  //Rcpp::Rcout << "prob detectable " << prob_detectable_dat << std::endl;
+  
+  // For each observation, find log likelihood
+  for(int i = 0; i < obs.size(); ++i){
+    // If undetectable, has the same probability
+    if(obs[i] >= yintercept){
+      liks_tj[i] = 1.0 - prob_detectable_dat[ages[i]];
+    } else {
+      // If detectable, across all past days:
+      // i) Probability still detectable today
+      // ii) Probability of observing Ct value, given time since infection and being detectable
+        liks_tj[i] = (dgumbel_jh(obs[i],vl_ages[ages[i]], obs_sd*sd_mod_vec[ages[i]])*
+          prob_detectable_dat[ages[i]])/
+          renormalizes[ages[i]];
+    }
+    liks_tj[i] = log(liks_tj[i]);
+  }
+  return liks_tj;
 }
