@@ -12,7 +12,8 @@ simulate_observations_wrapper(
   incu_period_par1 = 1.621,
   incu_period_par2 = 0.418,
   conf_delay_par1 = 5,
-  conf_delay_par2 = 2
+  conf_delay_par2 = 2,
+  sampling_dist_use = extraDistr::rdgamma
 )
 }
 \arguments{

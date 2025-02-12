@@ -12,7 +12,8 @@ pred_dist_wrapper(
   ages,
   pars,
   prob_infection,
-  symptom_surveillance = FALSE
+  symptom_surveillance = FALSE,
+  sampling_dist = "gamma"
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ pred_dist_wrapper(
 \item{prob_infection}{Vector of the probability of infection.}
 
 \item{symptom_surveillance}{Boolean if TRUE, then takes arguments from pars and generates the Ct distribution assuming symptom-based surveillance}
+
+\item{sampling_dist}{character, either "gamma" or "uniform" giving the distribution used for the sampling delay distribution}
 }
 \value{
 Tibble containing Ct values, densities, and times

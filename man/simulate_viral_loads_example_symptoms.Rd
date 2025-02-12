@@ -12,7 +12,8 @@ simulate_viral_loads_example_symptoms(
   incu_par2 = 0.418,
   sampling_par1 = 5,
   sampling_par2 = 1,
-  N = 100
+  N = 100,
+  sampling_dist_use = extraDistr::rdgamma
 )
 }
 \arguments{

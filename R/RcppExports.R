@@ -30,8 +30,8 @@ pred_dist_cpp <- function(test_cts, ages, obs_time, pars, prob_infection, sd_mod
     .Call('_virosolver_pred_dist_cpp', PACKAGE = 'virosolver', test_cts, ages, obs_time, pars, prob_infection, sd_mod_vec)
 }
 
-pred_dist_cpp_symptoms <- function(test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec) {
-    .Call('_virosolver_pred_dist_cpp_symptoms', PACKAGE = 'virosolver', test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec)
+pred_dist_cpp_symptoms <- function(test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec, sampling_dist) {
+    .Call('_virosolver_pred_dist_cpp_symptoms', PACKAGE = 'virosolver', test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec, sampling_dist)
 }
 
 pred_age_since_inf_symptomatic <- function(max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec) {

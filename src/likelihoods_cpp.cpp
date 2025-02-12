@@ -19,26 +19,74 @@ double viral_load_func_single_cpp(double tshift,
 //' @export
 // [[Rcpp::export]]
 double dgumbel_jh(double x, double mu, double sigma){
+  double const1 = 1.0/(sigma*2.50662827463);
   double a = (x-mu)/sigma;
-  double prob = (1/sigma) * exp(-(a + exp(-a)));
+  double prob = const1 * exp(-0.5 * std::pow(a, 2));
+  //double prob = (1/sigma) * exp(-(a + exp(-a)));
   return prob;
+  
 }
 // [[Rcpp::export]]
 double pgumbel_scale(double x, double mu, double sigma){
   // Get probability between 0 and the limit of detection, x
+
   double a = (x-mu)/sigma;
-  double prob = exp(-exp(-a));
+  double const1 = 1.0/(sigma*2.50662827463);
+
+  double prob = 0.5*(1.0 + erf(a/(sigma*M_SQRT2)));
+  //double prob = exp(-exp(-a));
   return prob;
 }
 // [[Rcpp::export]]
 double pgumbel_jh(double x, double mu, double sigma){
+  double step = 0.1;
   // Get probability between 0 and the limit of detection, x
+
+  double den = sigma*M_SQRT2;
+
+  double prob = 0.5*(erf((x + step - mu)/den) - erf((x + mu)/den));
+  return prob;
+  /*
+  double prob = 0.5*(1.0 + erf(a/(sigma*M_SQRT2)));
+  
+  a = (0-mu)/sigma;
+  double prob1 = 0.5*(1.0 + erf(a/(sigma*M_SQRT2)));
+  
+  return prob - prob1;
+  */
+  /*
   double a = (x-mu)/sigma;
   double prob = exp(-exp(-a));
 
   double a1 = (0-mu)/sigma;
   double prob1 = exp(-exp(-a1));
   return prob - prob1;
+   */
+}
+
+double pnorm_jh(double x1, double x2, double mu, double sigma){
+  // Get probability between 0 and the limit of detection, x
+  
+  double den = sigma*M_SQRT2;
+  
+  double prob = 0.5*(erf((x2 - mu)/den) - erf((x1 - mu)/den));
+  return prob;
+  /*
+   double prob = 0.5*(1.0 + erf(a/(sigma*M_SQRT2)));
+   
+   a = (0-mu)/sigma;
+   double prob1 = 0.5*(1.0 + erf(a/(sigma*M_SQRT2)));
+   
+   return prob - prob1;
+   */
+  /*
+   double a = (x-mu)/sigma;
+   double prob = exp(-exp(-a));
+   
+   double a1 = (0-mu)/sigma;
+   double prob1 = exp(-exp(-a1));
+   return prob - prob1;
+   */
 }
 
 
@@ -259,9 +307,9 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
   double wane_rate2 = (level_switch - true_0)/pars["wane_rate2"];
   double growth_rate = (viral_peak - true_0)/desired_mode;
   double t_switch1 = t_switch + desired_mode + tshift;
-
+  
   double prob_detect = pars["prob_detect"];
-
+  
   NumericVector vl_ages(ages.size());
   NumericVector renormalizes(ages.size());
   double prob_undetectable=0;
@@ -277,36 +325,38 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
     prob_detectable_dat[i] = prop_detectable_cpp(ages[i], vl_ages[i],obs_sd*sd_mod_vec[i],
                                                  yintercept,t_switch1, prob_detect);
     prob_undetectable += prob_detectable_dat[i]*prob_infection[obs_time-ages[i]-1];
-
+    
     // If no one is detectable of a certain age since infection, then we will be dividing
     // 0 by renormalizes[i], so set to 1 to prevent error
     if(prob_detectable_dat[i] == 0) {
       renormalizes[i] = 1;
     }
   }
-  prob_undetectable = 1 - prob_undetectable;
-
+  prob_undetectable = 1.0 - prob_undetectable;
+  
   NumericVector density(test_cts.size());
   // For each observation
   for(int i = 0; i < test_cts.size(); ++i){
-    for(int j = 0; j < vl_ages.size(); ++j){
-      if(test_cts[i] >= yintercept){
-        density[i] = prob_undetectable;
-      } else {
-        density[i] += ((
-          pgumbel_jh(test_cts[i]+ct_step, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])-
-          pgumbel_jh(test_cts[i], vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])
-                         )*
+    if(test_cts[i] >= yintercept){
+      density[i] = prob_undetectable;
+    } else {
+      for(int j = 0; j < vl_ages.size(); ++j){
+        density[i] += (pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])*
           prob_infection[obs_time-ages[j]-1]*
           prob_detectable_dat[ages[j]-1])/
             renormalizes[ages[j]-1]  ;
+            
+            //(dgumbel_jh(test_cts[i], vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])*// 
+            /* ((
+             pgumbel_jh(test_cts[i]+ct_step, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])-
+             pgumbel_jh(test_cts[i], vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])
+            )* */
       }
     }
   }
   
   return density;
 }
-
 
 // [[Rcpp::export]]
 NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
@@ -315,7 +365,8 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
                             double obs_time,
                             NumericVector pars,
                             NumericVector prob_infection,
-                            NumericVector sd_mod_vec){
+                            NumericVector sd_mod_vec,
+                            int sampling_dist){
   
   double ct_step = test_cts[1]-test_cts[0];
   
@@ -385,9 +436,20 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   
   // Find probability of each discrete sampling delay
   NumericVector prob_sampling_delay(max_sampling_delay+1);
-  for(int d = 0; d < prob_sampling_delay.size(); ++d){
-    prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, sampling_par2, true, false) - R::pgamma(d, sampling_par1, sampling_par2, true, false))/
-      R::pgamma(max_sampling_delay+1, sampling_par1, sampling_par2, true, false);
+  if(sampling_dist == 1){
+    for(int d = 0; d < prob_sampling_delay.size(); ++d){
+      prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, sampling_par2, true, false) - R::pgamma(d, sampling_par1, sampling_par2, true, false))/
+        R::pgamma(max_sampling_delay+1, sampling_par1, sampling_par2, true, false);
+    }
+  } else {
+    double uniform_prob = 1.0 / (sampling_par2 - sampling_par1);
+    for(int d = 0; d < prob_sampling_delay.size(); ++d){
+      if(d < sampling_par1 || d > sampling_par2){
+        prob_sampling_delay[d] = 0.0;
+      } else {
+        prob_sampling_delay[d] = uniform_prob;
+      }
+    }
   }
   
   NumericVector density(test_cts.size());
@@ -400,10 +462,12 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
         if(test_cts[i] >= yintercept){
           density[i] = prob_undetectable;
         } else {
-          density[i] += ((
+          density[i] += (
+            pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a])*
+            /*(
             pgumbel_jh(test_cts[i]+ct_step, vl_ages[a], obs_sd*sd_mod_vec[a])-
               pgumbel_jh(test_cts[i], vl_ages[a], obs_sd*sd_mod_vec[a])
-          )*
+            )**/
             prob_sampling_delay[d]* // Probability of having this sampling delay
             prob_incu_period[o]* // Probability of having this incubation period
             prob_infection[obs_time-a]*
@@ -578,8 +642,7 @@ NumericVector likelihood_kinetics_model(NumericVector obs,
                                                              level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             test_ages[i],false);
-    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);//*sd_mod_vec[i]);
-    //renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd);
+    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);
     // If still detectable from gumbel dist, then increase max age
     if(renormalizes[i] > 0) max_age++;
   }

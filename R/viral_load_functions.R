@@ -64,6 +64,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' @param pars Model parameters.
 #' @param prob_infection Vector of the probability of infection.
 #' @param symptom_surveillance Boolean if TRUE, then takes arguments from pars and generates the Ct distribution assuming symptom-based surveillance
+#' @param sampling_dist character, either "gamma" or "uniform" giving the distribution used for the sampling delay distribution
 #' 
 #' @return Tibble containing Ct values, densities, and times 
 #' 
@@ -71,7 +72,7 @@ viral_load_func <- function(pars, obs_t, convert_vl=FALSE, infection_time=0){
 #' @family viral load functions
 #' 
 #' @export
-pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, symptom_surveillance=FALSE){
+pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, symptom_surveillance=FALSE, sampling_dist="gamma"){
   max_age <- length(ages)
   
   if(symptom_surveillance){
@@ -91,18 +92,22 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
   decrease_vec <- (t_switch+1):(t_switch+pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-pars["sd_mod"])/pars["sd_mod_wane"])*seq_len(pars["sd_mod_wane"])
 
+  if(sampling_dist == "gamma"){
+    sampling_dist_int <- 1
+  } else {
+    sampling_dist_int <- 2
+  }
   
   comb_dat <- NULL
   for(obs_time in obs_times){
     ## Restrict ages to times occurring before 
     ## time of sample collection (single cross section)
     ages1 <- ages[(obs_time - ages) > 0]
-    
     ## Returns the full probability density distribution to simulate from
     if(!symptom_surveillance){
       densities <- pred_dist_cpp(test_cts, ages1, obs_time, pars, prob_infection,sd_mod) 
     } else {
-      densities <- pred_dist_cpp_symptoms(test_cts, pars["max_incu_period"],pars["max_sampling_delay"], obs_time, pars, prob_infection,sd_mod)
+      densities <- pred_dist_cpp_symptoms(test_cts, pars["max_incu_period"],pars["max_sampling_delay"], obs_time, pars, prob_infection,sd_mod,sampling_dist_int)
     }
     comb_dat[[obs_time]] <- tibble(ct=test_cts,density=densities, t=obs_time)
   }

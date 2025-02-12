@@ -114,8 +114,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // pred_dist_cpp_symptoms
-NumericVector pred_dist_cpp_symptoms(NumericVector test_cts, int max_incu_period, int max_sampling_delay, double obs_time, NumericVector pars, NumericVector prob_infection, NumericVector sd_mod_vec);
-RcppExport SEXP _virosolver_pred_dist_cpp_symptoms(SEXP test_ctsSEXP, SEXP max_incu_periodSEXP, SEXP max_sampling_delaySEXP, SEXP obs_timeSEXP, SEXP parsSEXP, SEXP prob_infectionSEXP, SEXP sd_mod_vecSEXP) {
+NumericVector pred_dist_cpp_symptoms(NumericVector test_cts, int max_incu_period, int max_sampling_delay, double obs_time, NumericVector pars, NumericVector prob_infection, NumericVector sd_mod_vec, int sampling_dist);
+RcppExport SEXP _virosolver_pred_dist_cpp_symptoms(SEXP test_ctsSEXP, SEXP max_incu_periodSEXP, SEXP max_sampling_delaySEXP, SEXP obs_timeSEXP, SEXP parsSEXP, SEXP prob_infectionSEXP, SEXP sd_mod_vecSEXP, SEXP sampling_distSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -126,7 +126,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type pars(parsSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type prob_infection(prob_infectionSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type sd_mod_vec(sd_mod_vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(pred_dist_cpp_symptoms(test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec));
+    Rcpp::traits::input_parameter< int >::type sampling_dist(sampling_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(pred_dist_cpp_symptoms(test_cts, max_incu_period, max_sampling_delay, obs_time, pars, prob_infection, sd_mod_vec, sampling_dist));
     return rcpp_result_gen;
 END_RCPP
 }

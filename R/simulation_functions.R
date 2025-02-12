@@ -142,7 +142,8 @@ simulate_observations_wrapper <- function(
   incidence, times, symp_frac=0.35,
   population_n=100000,
   incu_period_par1=1.621,incu_period_par2=0.418,
-  conf_delay_par1=5,conf_delay_par2=2){
+  conf_delay_par1=5,conf_delay_par2=2,
+  sampling_dist_use=extraDistr::rdgamma){
   
   ## Number of individuals who are not infected in the population
   not_infected <- population_n-sum(incidence)
@@ -161,7 +162,7 @@ simulate_observations_wrapper <- function(
     mutate(incu_period=ifelse(is_infected & is_symp, rlnorm(n(), incu_period_par1, incu_period_par2), NA),
            onset_time=infection_time+floor(incu_period)) %>%
     ## Confirmation time from a gamma distribution
-    mutate(confirmation_delay=extraDistr::rdgamma(n(),shape=conf_delay_par1,rate=conf_delay_par2))
+    mutate(confirmation_delay=sampling_dist_use(n(),conf_delay_par1,conf_delay_par2))
   inc_dat
 }
 
@@ -312,7 +313,7 @@ simulate_reporting <- function(individuals,
     ungroup()
   
   ## Get rolling average growth rate
-  growth_rates_all <- expand_grid(grouped_dat_combined, window=seq(10,50,by=10)) %>% 
+  growth_rates_all <- expand_grid(grouped_dat_combined, window=seq(7,49,by=7)) %>% 
     arrange(var, ver, window, t) %>%
     group_by(var, ver, window) %>%
     mutate(gr_window=zoo::rollmean(gr_daily, window,align="right",fill=NA)) %>%
@@ -380,7 +381,7 @@ simulate_viral_loads_wrapper <- function(linelist,
   
   vl_dat_undetectable <- vl_dat %>% filter(ct != -1) %>% 
     mutate(vl = ((kinetics_pars["intercept"]-ct)/log2(10)) + kinetics_pars["LOD"],
-           days_since_infection = pmax(floor(incu_period + confirmation_delay),-1),
+           days_since_infection = pmax(floor(sampled_time - infection_time),-1),
            sd_used = NA,
            ct_obs_sim=ct,
            ct_obs = kinetics_pars["intercept"],
@@ -392,10 +393,10 @@ simulate_viral_loads_wrapper <- function(linelist,
     mutate(ct=virosolver::viral_load_func(kinetics_pars, sampled_time, FALSE, infection_time)) %>%
     ungroup() %>%
     mutate(vl = ((kinetics_pars["intercept"]-ct)/log2(10)) + kinetics_pars["LOD"],
-           days_since_infection = pmax(floor(incu_period + confirmation_delay),-1),
+           days_since_infection = pmax(floor(sampled_time - infection_time),-1),
            sd_used = ifelse(days_since_infection > 0, kinetics_pars["obs_sd"]*sd_mod[days_since_infection],kinetics_pars["obs_sd"]))
   
-  vl_dat_detectable$ct_obs_sim <- round(extraDistr::rgumbel(nrow(vl_dat_detectable), vl_dat_detectable$ct, vl_dat_detectable$sd_used),2)
+  vl_dat_detectable$ct_obs_sim <- round(rnorm(nrow(vl_dat_detectable), vl_dat_detectable$ct, vl_dat_detectable$sd_used),2)
   
   vl_dat_detectable <- vl_dat_detectable %>%
     group_by(i) %>%
@@ -441,7 +442,7 @@ simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
     cts[detectable_statuses <= age] <- 1000
     sd_used <- kinetics_pars["obs_sd"]*sd_mod[age]
     ## Generate N observations of Ct values from gumbel distribution for a specified mode
-    ct_obs_sim <- extraDistr::rgumbel(N, cts, sd_used)
+    ct_obs_sim <- rnorm(N, cts, sd_used)
     ## Set Ct values greater than intercept to intercept value
     ct_obs_sim <- pmin(ct_obs_sim, kinetics_pars["intercept"])
     sim_dat[age,] <- ct_obs_sim
@@ -475,7 +476,8 @@ simulate_viral_loads_example <- function(ages, kinetics_pars,N=100){
 simulate_viral_loads_example_symptoms <- function(ages, kinetics_pars,
                                                   incu_par1=1.621,incu_par2=0.418,
                                                   sampling_par1=5,sampling_par2=1,
-                                                  N=100){
+                                                  N=100,
+                                                  sampling_dist_use=extraDistr::rdgamma){
   t_switch <-  kinetics_pars["t_switch"] + kinetics_pars["desired_mode"] + kinetics_pars["tshift"]
   sd_mod <- rep(kinetics_pars["sd_mod"], max(ages))
   unmod_vec <- 1:min(t_switch,max(ages))
@@ -491,14 +493,14 @@ simulate_viral_loads_example_symptoms <- function(ages, kinetics_pars,
   detectable_statuses <- floor(rnbinom(N, 1, prob=kinetics_pars["prob_detect"]) + 
     kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"])
   incu_periods <- floor(rlnorm(N, incu_par1,incu_par2))
-  sampling_delays <- extraDistr::rdgamma(N, sampling_par1, sampling_par2)
+  sampling_delays <- sampling_dist_use(N, sampling_par1, sampling_par2)
   days_since_infection <- incu_periods + sampling_delays
   
   sim_dat <- tibble(i=1:N, day_undetectable=detectable_statuses, incu_period=incu_periods,sampling_delay=sampling_delays,days_since_infection=days_since_infection)
   
   sim_dat <- sim_dat %>% group_by(i) %>%
     mutate(modal_ct=modal_cts[days_since_infection+1]) %>%
-    mutate(ct_obs=extraDistr::rgumbel(n(), modal_ct, kinetics_pars["obs_sd"]*sd_mod[days_since_infection+1])) %>%
+    mutate(ct_obs=rnorm(n(), modal_ct, kinetics_pars["obs_sd"]*sd_mod[days_since_infection+1])) %>%
     mutate(ct_obs=pmin(ct_obs, kinetics_pars["intercept"])) %>%
     rename(age=days_since_infection)
   
