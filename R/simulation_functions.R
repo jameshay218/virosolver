@@ -130,6 +130,7 @@ simulate_viral_loads <- function(infection_times,
 #' Defaults to 5.
 #' @param conf_delay_par2 The second parameter (rate) associated with the discretized gamma confirmation delay.
 #' Defaults to 2. 
+#' @param onset_peak_cor Gives the correlation between peak viral load timing and onset time. 
 #'
 #' @return A tibble with line list data for all individuals in the population.
 #' 
@@ -143,8 +144,9 @@ simulate_observations_wrapper <- function(
   population_n=100000,
   incu_period_par1=1.621,incu_period_par2=0.418,
   conf_delay_par1=5,conf_delay_par2=2,
-  sampling_dist_use=extraDistr::rdgamma){
-  
+  sampling_dist_use=extraDistr::rdgamma,
+  onset_peak_cor=NULL,
+  peak_time_sd=NULL){
   ## Number of individuals who are not infected in the population
   not_infected <- population_n-sum(incidence)
   ## Create a tibble with infection times and incidence
@@ -158,11 +160,28 @@ simulate_observations_wrapper <- function(
     mutate(is_infected = ifelse(is.na(infection_time), 0, 1)) %>%
     ## Is this individual going to be symptomatic? Uses a binomial distribution
     mutate(is_symp=ifelse(is_infected, rbinom(n(), 1, symp_frac), 0)) %>%
-    ## Symptom onset time from a log normal distribution
-    mutate(incu_period=ifelse(is_infected & is_symp, rlnorm(n(), incu_period_par1, incu_period_par2), NA),
-           onset_time=infection_time+floor(incu_period)) %>%
     ## Confirmation time from a gamma distribution
     mutate(confirmation_delay=sampling_dist_use(n(),conf_delay_par1,conf_delay_par2))
+  
+  if(!is.null(onset_peak_cor)){
+    sds <- c(peak_time_sd,incu_period_par2)
+    cors <- matrix(c(1,onset_peak_cor,onset_peak_cor,1),nrow=2)
+    Sigma <- diag(sds)%*%cors%*%diag(sds)
+    inc_dat <- inc_dat %>% 
+      mutate(sim=MASS::mvrnorm(n(), c(0,incu_period_par1),Sigma)) %>%
+      mutate(peak_time_offset=sim[,1]) %>%
+      mutate(incu_period=exp(sim[,2])) %>%
+      select(-sim) %>%
+      mutate(incu_period = if_else(is_symp==1,incu_period,NA)) %>%
+      mutate(onset_time=infection_time+floor(incu_period))
+    
+  } else {
+    inc_dat <- inc_dat %>%
+    ## Symptom onset time from a log normal distribution
+      mutate(peak_time_offset=0) %>%
+    mutate(incu_period=ifelse(is_infected & is_symp, rlnorm(n(), incu_period_par1, incu_period_par2), NA),
+           onset_time=infection_time+floor(incu_period))
+  }
   inc_dat
 }
 
@@ -363,7 +382,6 @@ simulate_viral_loads_wrapper <- function(linelist,
   sd_mod[unmod_vec] <- 1
   decrease_vec <- (t_switch+1):(t_switch+kinetics_pars["sd_mod_wane"])
   sd_mod[decrease_vec] <- 1 - ((1-kinetics_pars["sd_mod"])/kinetics_pars["sd_mod_wane"])*seq_len(kinetics_pars["sd_mod_wane"])
-
   t_until_clearance <- rnbinom(nrow(linelist), 1, prob=kinetics_pars["prob_detect"])
   linelist$t_until_clearance <- t_until_clearance
   vl_dat <- linelist %>% 
@@ -372,7 +390,7 @@ simulate_viral_loads_wrapper <- function(linelist,
     ## Pre-compute loss of detectability
     mutate(last_detectable_day = infection_time + ## From infection time
              t_until_clearance + ## How long until full clearance?
-             kinetics_pars["tshift"] + kinetics_pars["desired_mode"] + kinetics_pars["t_switch"]) %>% ## With correct shift
+             kinetics_pars["tshift"] + kinetics_pars["desired_mode"] +peak_time_offset+ kinetics_pars["t_switch"]) %>% ## With correct shift
     mutate(ct = -1) %>%
     ## If sampled after loss of detectability or not infected, then undetectable
     mutate(ct = ifelse(sampled_time > last_detectable_day, 1000, ct),
@@ -386,11 +404,10 @@ simulate_viral_loads_wrapper <- function(linelist,
            ct_obs_sim=ct,
            ct_obs = kinetics_pars["intercept"],
            infection_time = ifelse(infection_time < 0, NA, infection_time))
-  
-  
   vl_dat_detectable <- vl_dat %>% filter(ct == -1) %>% 
+    mutate(kinetics_pars1 = list(kinetics_pars)) %>% mutate(kinetics_pars1=map2(kinetics_pars1, peak_time_offset, ~{.x["desired_mode"]=max(.x["desired_mode"]+.y,0); .x})) %>%
     group_by(i) %>% 
-    mutate(ct=virosolver::viral_load_func(kinetics_pars, sampled_time, FALSE, infection_time)) %>%
+    mutate(ct=virosolver::viral_load_func(unlist(kinetics_pars1), sampled_time, FALSE, infection_time)) %>%
     ungroup() %>%
     mutate(vl = ((kinetics_pars["intercept"]-ct)/log2(10)) + kinetics_pars["LOD"],
            days_since_infection = pmax(floor(sampled_time - infection_time),-1),
