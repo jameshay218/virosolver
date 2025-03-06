@@ -13,7 +13,9 @@ simulate_observations_wrapper(
   incu_period_par2 = 0.418,
   conf_delay_par1 = 5,
   conf_delay_par2 = 2,
-  sampling_dist_use = extraDistr::rdgamma
+  sampling_dist_use = extraDistr::rdgamma,
+  onset_peak_cor = NULL,
+  peak_time_sd = NULL
 )
 }
 \arguments{
@@ -37,6 +39,8 @@ Defaults to 5.}
 
 \item{conf_delay_par2}{The second parameter (rate) associated with the discretized gamma confirmation delay.
 Defaults to 2.}
+
+\item{onset_peak_cor}{Gives the correlation between peak viral load timing and onset time.}
 }
 \value{
 A tibble with line list data for all individuals in the population.
