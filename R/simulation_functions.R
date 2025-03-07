@@ -131,6 +131,8 @@ simulate_viral_loads <- function(infection_times,
 #' @param conf_delay_par2 The second parameter (rate) associated with the discretized gamma confirmation delay.
 #' Defaults to 2. 
 #' @param onset_peak_cor Gives the correlation between peak viral load timing and onset time. 
+#' @param peak_time_sd The standard deviation of the peak time distribution.
+#' @param peak_time_mean The mean of the peak time distribution.
 #'
 #' @return A tibble with line list data for all individuals in the population.
 #' 
@@ -146,7 +148,8 @@ simulate_observations_wrapper <- function(
   conf_delay_par1=5,conf_delay_par2=2,
   sampling_dist_use=extraDistr::rdgamma,
   onset_peak_cor=NULL,
-  peak_time_sd=NULL){
+  peak_time_sd=NULL,
+  peak_time_mean=2.5){
   ## Number of individuals who are not infected in the population
   not_infected <- population_n-sum(incidence)
   ## Create a tibble with infection times and incidence
@@ -168,8 +171,8 @@ simulate_observations_wrapper <- function(
     cors <- matrix(c(1,onset_peak_cor,onset_peak_cor,1),nrow=2)
     Sigma <- diag(sds)%*%cors%*%diag(sds)
     inc_dat <- inc_dat %>% 
-      mutate(sim=MASS::mvrnorm(n(), c(0,incu_period_par1),Sigma)) %>%
-      mutate(peak_time_offset=sim[,1]) %>%
+      mutate(sim=MASS::mvrnorm(n(), c(log(peak_time_mean),incu_period_par1),Sigma)) %>%
+      mutate(peak_time_offset=exp(sim[,1])) %>%
       mutate(incu_period=exp(sim[,2])) %>%
       select(-sim) %>%
       mutate(incu_period = if_else(is_symp==1,incu_period,NA)) %>%
@@ -388,9 +391,10 @@ simulate_viral_loads_wrapper <- function(linelist,
     ## Fix infection time for uninfected individuals
     mutate(infection_time = ifelse(is.na(infection_time),-100, infection_time)) %>%
     ## Pre-compute loss of detectability
+    mutate(peak_time_mode = if_else(peak_time_offset==0, kinetics_pars["desired_mode"],peak_time_offset)) %>%
     mutate(last_detectable_day = infection_time + ## From infection time
              t_until_clearance + ## How long until full clearance?
-             kinetics_pars["tshift"] + kinetics_pars["desired_mode"] +peak_time_offset+ kinetics_pars["t_switch"]) %>% ## With correct shift
+             kinetics_pars["tshift"] + peak_time_mode + kinetics_pars["t_switch"]) %>% ## With correct shift
     mutate(ct = -1) %>%
     ## If sampled after loss of detectability or not infected, then undetectable
     mutate(ct = ifelse(sampled_time > last_detectable_day, 1000, ct),
