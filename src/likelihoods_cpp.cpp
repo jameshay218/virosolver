@@ -400,8 +400,7 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   
   NumericVector vl_ages(age_max+1);
   NumericVector renormalizes(age_max+1);
-  double prob_undetectable=0;
-  
+
   // Solve model for expected viral load on each day of infection
   for(int a = 0; a < vl_ages.size(); ++a){
     vl_ages[a] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
@@ -416,31 +415,32 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   for(int a = 0; a < prob_detectable_dat.size(); ++a){
     prob_detectable_dat[a] = prop_detectable_cpp(a, vl_ages[a],obs_sd*sd_mod_vec[a],
                                                  yintercept,t_switch1, prob_detect);
-    
-    prob_undetectable += prob_detectable_dat[a]*prob_infection[obs_time-a];
-    
+
     // If no one is detectable of a certain age since infection, then we will be dividing
     // 0 by renormalizes[a], so set to 1 to prevent error
     if(prob_detectable_dat[a] == 0) {
       renormalizes[a] = 1;
     }
   }
-  prob_undetectable = 1 - prob_undetectable;
-  
+
   // Find probability of each discrete incubation period
   NumericVector prob_incu_period(max_incu_period+1);
-  for(int o = 0; o < prob_incu_period.size(); ++o){
+  for(int o = 0; o <= max_incu_period; ++o){
     prob_incu_period[o] = (R::plnorm(o+1, incu_par1, incu_par2, true, false) - R::plnorm(o, incu_par1, incu_par2, true, false))/
-      R::plnorm(max_incu_period+1, incu_par1, incu_par2, true, false);
+      R::plnorm(max_incu_period, incu_par1, incu_par2, true, false);
   }
   
   // Find probability of each discrete sampling delay
   NumericVector prob_sampling_delay(max_sampling_delay+1);
+  //Rcpp::Rcout << "Prob sampling dist: ";
   if(sampling_dist == 1){
-    for(int d = 0; d < prob_sampling_delay.size(); ++d){
-      prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, sampling_par2, true, false) - R::pgamma(d, sampling_par1, sampling_par2, true, false))/
-        R::pgamma(max_sampling_delay+1, sampling_par1, sampling_par2, true, false);
+    //Rcpp::Rcout << "Sampling par1: " << sampling_par1 << "; Sampling par2: " << sampling_par2 << std::endl;
+    for(int d = 0; d <= max_sampling_delay; ++d){
+      prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, 1/sampling_par2, true, false) - R::pgamma(d, sampling_par1, 1/sampling_par2, true, false))/
+        R::pgamma(max_sampling_delay, sampling_par1, 1/sampling_par2, true, false);
+      //Rcpp::Rcout << prob_sampling_delay[d] << " ";
     }
+    //Rcpp::Rcout << std::endl;
   } else {
     double uniform_prob = 1.0 / (sampling_par2 - sampling_par1);
     for(int d = 0; d < prob_sampling_delay.size(); ++d){
@@ -459,24 +459,22 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
     for(int d = 0; d < prob_sampling_delay.size(); ++d){
       for(int o = 0; o < prob_incu_period.size(); ++o){
         a = d + o; // Time since infection is days since onset + sampling delay
-        if(test_cts[i] >= yintercept){
-          density[i] = prob_undetectable;
-        } else {
-          density[i] += (
-            pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a])*
+        if(obs_time - o - d -1 >= 0){
+          density[i] += exp((
+            log(pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a]))+
             /*(
             pgumbel_jh(test_cts[i]+ct_step, vl_ages[a], obs_sd*sd_mod_vec[a])-
               pgumbel_jh(test_cts[i], vl_ages[a], obs_sd*sd_mod_vec[a])
             )**/
-            prob_sampling_delay[d]* // Probability of having this sampling delay
-            prob_incu_period[o]* // Probability of having this incubation period
-            prob_infection[obs_time-a]*
-            prob_detectable_dat[a])/
-              renormalizes[a]  ;
+            log(prob_sampling_delay[d])+ // Probability of having this sampling delay
+            log(prob_incu_period[o])+ // Probability of having this incubation period
+            log(prob_infection[obs_time-a-1])+
+            log(prob_detectable_dat[a])) - log(renormalizes[a]));
         }
       }
     }
   }
+  /*
   double renormalize_age = 0;
   for(int d = 0; d < prob_sampling_delay.size(); ++d){
     for(int o = 0; o < prob_incu_period.size(); ++o){
@@ -488,7 +486,7 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
       }
     }
   density = density/renormalize_age;
-  
+  */
   return density;
 }
 
@@ -532,8 +530,7 @@ NumericVector pred_age_since_inf_symptomatic(int max_incu_period,
   
   NumericVector vl_ages(age_max);
   NumericVector renormalizes(age_max);
-  double prob_undetectable=0;
-  
+
   // Solve model for expected viral load on each day of infection
   for(int a = 0; a < vl_ages.size(); ++a){
     vl_ages[a] = viral_load_func_single_cpp(tshift,desired_mode, t_switch,viral_peak,
@@ -549,16 +546,12 @@ NumericVector pred_age_since_inf_symptomatic(int max_incu_period,
     prob_detectable_dat[a] = prop_detectable_cpp(a, vl_ages[a],obs_sd*sd_mod_vec[a],
                                                  yintercept,t_switch1, prob_detect);
     
-    prob_undetectable += prob_detectable_dat[a]*prob_infection[obs_time-a];
-    
     // If no one is detectable of a certain age since infection, then we will be dividing
     // 0 by renormalizes[a], so set to 1 to prevent error
     if(prob_detectable_dat[a] == 0) {
       renormalizes[a] = 1;
     }
   }
-  prob_undetectable = 1 - prob_undetectable;
-  
   // Find probability of each discrete incubation period
   NumericVector prob_incu_period(max_incu_period);
   for(int o = 0; o < prob_incu_period.size(); ++o){
