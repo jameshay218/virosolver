@@ -77,7 +77,7 @@ pred_dist_wrapper <- function(test_cts, obs_times, ages, pars, prob_infection, s
   
   if(symptom_surveillance){
     test_cts <- test_cts[test_cts < pars["intercept"]]
-    max_age <- pars["max_incu_period"] + pars["max_sampling_delay"]
+    max_age <- pars["max_incu_period"] + pars["max_sampling_delay"] + 1
   }
   
   ## Time at which standard deviation is reduced

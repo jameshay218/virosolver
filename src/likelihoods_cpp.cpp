@@ -30,8 +30,8 @@ double dgumbel_jh(double x, double mu, double sigma){
 double pgumbel_scale(double x, double mu, double sigma){
   // Get probability between 0 and the limit of detection, x
 
-  double a = (x-mu)/sigma;
-  double const1 = 1.0/(sigma*2.50662827463);
+  double a = (x-mu);
+  // double const1 = 1.0/(sigma*2.50662827463);
 
   double prob = 0.5*(1.0 + erf(a/(sigma*M_SQRT2)));
   //double prob = exp(-exp(-a));
@@ -63,6 +63,12 @@ double pgumbel_jh(double x, double mu, double sigma){
   return prob - prob1;
    */
 }
+
+double pnorm_alt(double x1, double x2, double mu, double sigma){
+  // Get probability between 0 and the limit of detection, x
+  return R::pnorm(x2, mu, sigma, true, false) - R::pnorm(x1, mu, sigma, true, false);
+}
+
 
 double pnorm_jh(double x1, double x2, double mu, double sigma){
   // Get probability between 0 and the limit of detection, x
@@ -318,7 +324,8 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
                                             obs_sd*sd_mod_vec[i],level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             ages[i],false);
-    renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);
+    renormalizes[i] = pnorm_jh(0,yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);  
+    //renormalizes[i] = pgumbel_scale(yintercept, vl_ages[i],obs_sd*sd_mod_vec[i]);
   }
   NumericVector prob_detectable_dat(ages.size());
   for(int i = 0; i < prob_detectable_dat.size(); ++i){
@@ -341,7 +348,9 @@ NumericVector pred_dist_cpp(NumericVector test_cts,
       density[i] = prob_undetectable;
     } else {
       for(int j = 0; j < vl_ages.size(); ++j){
-        density[i] += (pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])*
+        density[i] += (
+          R::dnorm(test_cts[i],vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j],false)*
+          // pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[ages[j]-1], obs_sd*sd_mod_vec[j])*
           prob_infection[obs_time-ages[j]-1]*
           prob_detectable_dat[ages[j]-1])/
             renormalizes[ages[j]-1]  ;
@@ -367,9 +376,9 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
                             NumericVector prob_infection,
                             NumericVector sd_mod_vec,
                             int sampling_dist){
-  
   double ct_step = test_cts[1]-test_cts[0];
   
+   // Rcpp::Rcout << ct_step << std::endl;
   // Viral kinetics parameters
   double lod = pars["LOD"];
   double tshift = pars["tshift"];
@@ -407,7 +416,12 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
                                             obs_sd*sd_mod_vec[a],level_switch,true_0, yintercept,
                                             lod,wane_rate, wane_rate2,growth_rate,
                                             a,false);
-    renormalizes[a] = pgumbel_scale(yintercept, vl_ages[a],obs_sd*sd_mod_vec[a]);
+    //renormalizes[a] = R::pnorm(yintercept, vl_ages[a], obs_sd*sd_mod_vec[a], true, false) - R::pnorm(0, vl_ages[a], obs_sd*sd_mod_vec[a], true, false);
+    //Rcpp::Rcout << "Renormalize[a] 1: " << renormalizes[a] << std::endl;
+    // renormalizes[a] =pgumbel_scale(yintercept, vl_ages[a],obs_sd*sd_mod_vec[a]);
+    renormalizes[a] =pnorm_jh(0,yintercept, vl_ages[a],obs_sd*sd_mod_vec[a]);  
+    //Rcpp::Rcout << "Renormalize[a] 2: " << renormalizes[a] << std::endl;
+    
   }
   
   // Solve model for proportion detectable (including uninfected) on each day of infection
@@ -426,7 +440,7 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   // Find probability of each discrete incubation period
   NumericVector prob_incu_period(max_incu_period+1);
   for(int o = 0; o <= max_incu_period; ++o){
-    prob_incu_period[o] = (R::plnorm(o+1, incu_par1, incu_par2, true, false) - R::plnorm(o, incu_par1, incu_par2, true, false))/
+    prob_incu_period[o] = (R::plnorm(o+1, incu_par1, incu_par2, true, false) - R::plnorm(o, incu_par1, incu_par2, true, false))/ 
       R::plnorm(max_incu_period, incu_par1, incu_par2, true, false);
   }
   
@@ -436,15 +450,14 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   if(sampling_dist == 1){
     //Rcpp::Rcout << "Sampling par1: " << sampling_par1 << "; Sampling par2: " << sampling_par2 << std::endl;
     for(int d = 0; d <= max_sampling_delay; ++d){
-      prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, 1/sampling_par2, true, false) - R::pgamma(d, sampling_par1, 1/sampling_par2, true, false))/
-        R::pgamma(max_sampling_delay, sampling_par1, 1/sampling_par2, true, false);
+      prob_sampling_delay[d] = (R::pgamma(d+1, sampling_par1, 1/sampling_par2, true, false) - R::pgamma(d, sampling_par1, 1/sampling_par2, true, false))/R::pgamma(max_sampling_delay, sampling_par1, 1/sampling_par2, true, false);
       //Rcpp::Rcout << prob_sampling_delay[d] << " ";
     }
     //Rcpp::Rcout << std::endl;
   } else {
     double uniform_prob = 1.0 / (sampling_par2 - sampling_par1);
-    for(int d = 0; d < prob_sampling_delay.size(); ++d){
-      if(d < sampling_par1 || d > sampling_par2){
+    for(int d = 0; d <= max_sampling_delay; ++d){
+      if(d < sampling_par1 || d >= sampling_par2){
         prob_sampling_delay[d] = 0.0;
       } else {
         prob_sampling_delay[d] = uniform_prob;
@@ -456,12 +469,15 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
   // For each observation
   int a;
   for(int i = 0; i < test_cts.size(); ++i){
-    for(int d = 0; d < prob_sampling_delay.size(); ++d){
-      for(int o = 0; o < prob_incu_period.size(); ++o){
+    for(int d = 0; d <=max_sampling_delay; ++d){
+      for(int o = 0; o <=max_incu_period; ++o){
         a = d + o; // Time since infection is days since onset + sampling delay
         if(obs_time - o - d -1 >= 0){
-          density[i] += exp((
-            log(pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a]))+
+          //Rcpp::Rcout << "pnorm_jh: " << pnorm_jh(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a]) << std::endl;
+          //Rcpp::Rcout << "pnorm_R: " << pnorm_alt(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a]) << std::endl;
+          density[i] += exp(
+            R::dnorm(test_cts[i],vl_ages[a],obs_sd*sd_mod_vec[a],true) + // Probability of observing Ct value, given time since infection and being detectable+infected
+            //log(pnorm_alt(test_cts[i],test_cts[i] + ct_step, vl_ages[a], obs_sd*sd_mod_vec[a]))+
             /*(
             pgumbel_jh(test_cts[i]+ct_step, vl_ages[a], obs_sd*sd_mod_vec[a])-
               pgumbel_jh(test_cts[i], vl_ages[a], obs_sd*sd_mod_vec[a])
@@ -469,24 +485,24 @@ NumericVector pred_dist_cpp_symptoms(NumericVector test_cts,
             log(prob_sampling_delay[d])+ // Probability of having this sampling delay
             log(prob_incu_period[o])+ // Probability of having this incubation period
             log(prob_infection[obs_time-a-1])+
-            log(prob_detectable_dat[a])) - log(renormalizes[a]));
+            log(prob_detectable_dat[a]) - log(renormalizes[a]));
         }
       }
     }
   }
-  /*
+  
   double renormalize_age = 0;
-  for(int d = 0; d < prob_sampling_delay.size(); ++d){
-    for(int o = 0; o < prob_incu_period.size(); ++o){
+  for(int d = 0; d <=max_sampling_delay; ++d){
+    for(int o = 0; o <=max_incu_period; ++o){
       a = d + o; // Time since infection is days since onset + sampling delay
       renormalize_age += prob_sampling_delay[d]* // Probability of having this sampling delay
         prob_incu_period[o]* // Probability of having this incubation period
-        prob_infection[obs_time-a]*
+        prob_infection[obs_time-a-1]*
         prob_detectable_dat[a];
       }
     }
   density = density/renormalize_age;
-  */
+  
   return density;
 }
 
